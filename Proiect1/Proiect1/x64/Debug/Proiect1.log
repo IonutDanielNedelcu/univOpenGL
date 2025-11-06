@@ -1,0 +1,17 @@
+﻿  D:freeglut.dll
+  D:glew32.dll
+  D:glew32s.dll
+  3 File(s) copied
+  D:glfw3.dll
+  D:glfw3dll.dll
+  D:glfw3_mt.dll
+  3 File(s) copied
+  D:SOIL.dll
+  1 File(s) copied
+  main.cpp
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(235,31): warning C4244: 'argument': conversion from 'GLfloat' to 'int', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(235,21): warning C4244: 'argument': conversion from 'GLfloat' to 'int', possible loss of data
+  Proiect1.vcxproj -> D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\x64\Debug\Proiect1.exe
+  0 File(s) copied
+  0 File(s) copied
+  0 File(s) copied
