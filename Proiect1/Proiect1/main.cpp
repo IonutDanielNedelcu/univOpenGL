@@ -23,6 +23,9 @@ GLuint
 	VaoId,
 	VboBackgroundId,
 	EboBackgroundId,
+	VaoCarId,
+	VboCarId,
+	EboCarId,
 	ColorBufferId,
 	myMatrixLocation,
 	codColLocation,
@@ -114,20 +117,6 @@ void CreateVBO(void)
 		20, 21
 	};
 
-
-
-	// culorile, ca atribute ale varfurilor
-	/*GLfloat Colors[] = {
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	  1.0f, 0.5f, 0.2f, 1.0f,
-	};*/
-
-
-
 	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
 	glGenVertexArrays(1, &VaoId);
 	glBindVertexArray(VaoId);
@@ -157,6 +146,167 @@ void CreateVBO(void)
 	
 
 }
+
+void CreateCarVBO(void)
+{
+	// varfurile pentru Mini Cooper
+	GLfloat VerticesCar[] = {
+		// corpul principal
+		500.0f, 680.0f, 0.0f, 1.0f,		0.85f, 0.15f, 0.15f, 1.0f,
+		620.0f, 680.0f, 0.0f, 1.0f,		0.85f, 0.15f, 0.15f, 1.0f,
+		620.0f, 750.0f, 0.0f, 1.0f,		0.85f, 0.15f, 0.15f, 1.0f,
+		500.0f, 750.0f, 0.0f, 1.0f,		0.85f, 0.15f, 0.15f, 1.0f,
+
+		// parbrizul
+		535.0f, 692.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+		555.0f, 692.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+		555.0f, 738.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+		535.0f, 738.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+
+		// plafonul alb
+		555.0f, 687.0f, 0.0f, 1.0f,		0.95f, 0.95f, 0.95f, 1.0f,
+		605.0f, 687.0f, 0.0f, 1.0f,		0.95f, 0.95f, 0.95f, 1.0f,
+		605.0f, 743.0f, 0.0f, 1.0f,		0.95f, 0.95f, 0.95f, 1.0f,
+		555.0f, 743.0f, 0.0f, 1.0f,		0.95f, 0.95f, 0.95f, 1.0f,
+
+		// luneta 
+		605.0f, 692.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+		615.0f, 692.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+		615.0f, 738.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+		605.0f, 738.0f, 0.0f, 1.0f,		0.40f, 0.70f, 0.90f, 1.0f,
+
+		// roata fata stanga
+		510.0f, 675.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		540.0f, 675.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		540.0f, 680.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		510.0f, 680.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// roata fata dreapta
+		510.0f, 750.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		540.0f, 750.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		540.0f, 755.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		510.0f, 755.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// roata spate stanga
+		580.0f, 675.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		610.0f, 675.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		610.0f, 680.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		580.0f, 680.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// roata spate dreapta
+		580.0f, 750.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		610.0f, 750.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		610.0f, 755.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		580.0f, 755.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// farurile galbene 
+		496.0f, 695.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		502.0f, 695.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		502.0f, 703.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		496.0f, 703.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+
+		496.0f, 727.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		502.0f, 727.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		502.0f, 735.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		496.0f, 735.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+
+		// stopurile rosii 
+		618.0f, 695.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		624.0f, 695.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		624.0f, 708.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		618.0f, 708.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+
+		618.0f, 722.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		624.0f, 722.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		624.0f, 735.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		618.0f, 735.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+	};
+
+	GLuint IndicesCar[] = {
+		// corpul rosu
+		0, 1, 2,
+		0, 2, 3,
+
+		// parbrizul
+		4, 5, 6,
+		4, 6, 7,
+
+		// plafonul alb
+		8, 9, 10,
+		8, 10, 11,
+
+		// luneta
+		12, 13, 14,
+		12, 14, 15,
+
+		// roata fata stanga
+		16, 17, 18,
+		16, 18, 19,
+
+		// roata fata dreapta
+		20, 21, 22,
+		20, 22, 23,
+
+		// roata spate stanga
+		24, 25, 26,
+		24, 26, 27,
+
+		// roata spate dreapta
+		28, 29, 30,
+		28, 30, 31,
+
+		// farurile
+		32, 33, 34,
+		32, 34, 35,
+		36, 37, 38,
+		36, 38, 39,
+
+		// stopurile
+		40, 41, 42,
+		40, 42, 43,
+		44, 45, 46,
+		44, 46, 47
+	};
+
+	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
+	glGenVertexArrays(1, &VaoCarId);
+	glBindVertexArray(VaoCarId);
+
+	// se creeaza un buffer nou pentru masina
+	glGenBuffers(1, &VboCarId);
+	// este setat ca buffer curent
+	glBindBuffer(GL_ARRAY_BUFFER, VboCarId);
+	// varfurile sunt "copiate" in bufferul curent
+	glBufferData(GL_ARRAY_BUFFER, sizeof(VerticesCar), VerticesCar, GL_STATIC_DRAW);
+
+	//	Se creeaza un buffer pentru indici
+	glGenBuffers(1, &EboCarId);														//  Generarea bufferului si indexarea acestuia catre variabila EboCarId
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EboCarId);									//  Setarea tipului de buffer - atributele varfurilor
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(IndicesCar), IndicesCar, GL_STATIC_DRAW);
+
+	//	Se activeaza lucrul cu atribute
+	//  Se asociaza atributul (0 = coordonate) pentru shader
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	//  Se asociaza atributul (1 =  culoare) pentru shader
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(4 * sizeof(GLfloat)));
+	// atentie - culorile functioneaza aici cu RGBa, au 4 valori
+}
+
+void DestroyCarVBO(void)
+{
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &EboCarId);
+	glDeleteBuffers(1, &VboCarId);
+
+	glBindVertexArray(0);
+	glDeleteVertexArrays(1, &VaoCarId);
+}
+
 void DestroyVBO(void)
 {
 	glDisableVertexAttribArray(1);
@@ -184,8 +334,8 @@ void Initialize(void)
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // culoarea de fond a ecranului
 	CreateVBO();
+	CreateCarVBO();  
 	CreateShaders();
-
 
 	codColLocation = glGetUniformLocation(ProgramId, "codCol");
 	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
@@ -200,7 +350,8 @@ void RenderFunction(void)
 	myMatrix = resizeMatrix;
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 
-
+	// ===== DESENARE BACKGROUND =====
+	glBindVertexArray(VaoId);  // Activam VAO-ul pentru fundal
 
 	//	Desenarea primitivelor;
 	//	Functia glDrawElements primeste 4 argumente:
@@ -218,11 +369,18 @@ void RenderFunction(void)
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, (GLvoid*)(26 * sizeof(GL_UNSIGNED_INT)));
 	glDisable(GL_LINE_STIPPLE); // dezactivez linia punctata
 
+	// ===== DESENARE MINI COOPER =====
+	glBindVertexArray(VaoCarId);
+	
+	// desenez toate componentele masinii 
+	glDrawElements(GL_TRIANGLES, 78, GL_UNSIGNED_INT, 0);
+
 	glFlush();
 }
 void Cleanup(void)
 {
 	DestroyShaders();
+	DestroyCarVBO();  
 	DestroyVBO();
 }
 
