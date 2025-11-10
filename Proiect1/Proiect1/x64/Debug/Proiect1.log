@@ -9,17 +9,17 @@
   D:SOIL.dll
   1 File(s) copied
   main.cpp
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(68,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(72,23): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
 D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(73,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(74,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(81,23): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(83,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(88,19): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(92,19): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(94,20): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(767,31): warning C4244: 'argument': conversion from 'GLfloat' to 'int', possible loss of data
-D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(767,21): warning C4244: 'argument': conversion from 'GLfloat' to 'int', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(77,23): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(78,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(79,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(86,23): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(88,15): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(93,19): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(97,19): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(99,20): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(810,31): warning C4244: 'argument': conversion from 'GLfloat' to 'int', possible loss of data
+D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\Proiect1\main.cpp(810,21): warning C4244: 'argument': conversion from 'GLfloat' to 'int', possible loss of data
   Proiect1.vcxproj -> D:\University\An3Sem1\GCOpenGL\Proiecte\univOpenGL\Proiect1\x64\Debug\Proiect1.exe
   0 File(s) copied
   0 File(s) copied

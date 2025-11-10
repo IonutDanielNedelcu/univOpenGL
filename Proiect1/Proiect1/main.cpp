@@ -47,14 +47,19 @@ float xBus=1920.0f, stepBus=0.1f, xCarUp=2500.0f, stepCarUp=0.13f, angleBus=0.0f
 float yBus = 0.0f, yCarUp = 0.0f;
 float xBusRotationPoint = 1100.0f, yBusRotationPoint = 600.0f;
 float xCarUpRotationPoint = 600.0f , yCarUpRotationPoint = 400.0f;
+float xCarDown1 = -100.0f, yCarDown1 = 188.0f, xCarDown2 = -700.0f, yCarDown2 = 188.0f, stepCarDown1 = 0.15f, stepCarDown2 = 0.2f;
 bool station = false;
+
 
 glm::mat4
 	myMatrix, resizeMatrix;
 
 glm::mat4
 	matrTranslBusUpX, matrTranslBusUpY, matrRotBusUp, matrTranslCarUp, matrRotCarUp,
-	matrTranslBusToOrigin, matrTranslBusFromOrigin, matrTranslCarUpToOrigin, matrTranslCarUpFromOrigin;
+	matrTranslBusToOrigin, matrTranslBusFromOrigin;
+
+glm::mat4
+    matrTranslCarDown1, matrTranslCarDown2, matrRotCarDownFull, matrTranslCarDownFull;
 
 glm::vec3 busRotationPoint1(xBusRotationPoint, yBusRotationPoint, 0.0f),
 			upCarRotationPoint1(xCarUpRotationPoint, yCarUpRotationPoint, 0.0f);
@@ -93,7 +98,6 @@ void MoveThings(void)
 		if (yCarUp > -160)
 			yCarUp = yCarUp - 0.1;
 	}
-
 	if (xCarUp < -700.0)
 	{
 		xBus = 1920.0f;
@@ -103,6 +107,27 @@ void MoveThings(void)
 		station = false;
 		angleBus = 0.0f;
 	}
+
+
+	xCarDown1 = xCarDown1 + stepCarDown1;
+    xCarDown2 = xCarDown2 + stepCarDown2;
+
+    // cand masina 2 se apropie de masina 1, incepe depasirea 
+    if (xCarDown2 >= xCarDown1 - 400.0f && xCarDown2 <= xCarDown1 + 300.0f) {
+        if (yCarDown2 < 364.0f) // centrul benzii a doua
+            yCarDown2 = yCarDown2 + 0.05f; 
+    }
+
+    if (yCarDown2 > 364.0f) {
+        yCarDown2 = 364.0f; 
+    }
+
+    // resetez pozitiile cand masinile de jos ies din ecran
+    if (xCarDown1 > xMax + 500.0) {
+        xCarDown1 = -100.0;
+        xCarDown2 = -700.0;
+        yCarDown2 = 188.0f; 
+    }
 
 	glutPostRedisplay();
 }
@@ -682,11 +707,12 @@ void RenderFunction(void)
 	matrRotBusUp = glm::rotate(glm::mat4(1.0f), angleBus, glm::vec3(0.0f, 0.0f, 1.0f));
 	matrTranslBusToOrigin = glm::translate(glm::mat4(1.0f), -busRotationPoint1);
 	matrTranslBusFromOrigin = glm::translate(glm::mat4(1.0f), busRotationPoint1);
-
-	matrTranslCarUpToOrigin = glm::translate(glm::mat4(1.0f), -upCarRotationPoint1);
-	matrTranslCarUpFromOrigin = glm::translate(glm::mat4(1.0f), upCarRotationPoint1);
-
 	matrTranslCarUp = glm::translate(glm::mat4(1.0f), glm::vec3(xCarUp, yCarUp, 0.0));
+
+	matrRotCarDownFull = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(0.0, 0.0, 1.0));
+    matrTranslCarDownFull = glm::translate(glm::mat4(1.0f), glm::vec3(-510.0f, -715.0f, 0.0));
+    matrTranslCarDown1 = glm::translate(glm::mat4(1.0f), glm::vec3(xCarDown1, yCarDown1, 0.0));
+    matrTranslCarDown2 = glm::translate(glm::mat4(1.0f), glm::vec3(xCarDown2, yCarDown2, 0.0));
 
 	// redimensionarea ferestrei
 	myMatrix = resizeMatrix;
@@ -745,9 +771,26 @@ void RenderFunction(void)
 	glDrawElements(GL_TRIANGLES, 90, GL_UNSIGNED_INT, 0); 
 
 
+	
+	// animatia masinii de jos care merge mai incet
+    myMatrix = resizeMatrix * matrTranslCarDown1 * matrRotCarDownFull * matrTranslCarDownFull;
+    glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
+
+    // desenez toate componentele masinii 
+    glDrawElements(GL_TRIANGLES, 90, GL_UNSIGNED_INT, 0); 
 
 
-	glutSwapBuffers();
+
+    // animatia masinii de jos care merge mai repede
+    myMatrix = resizeMatrix * matrTranslCarDown2 * matrRotCarDownFull * matrTranslCarDownFull;
+    glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
+
+    // desenez toate componentele masinii 
+    glDrawElements(GL_TRIANGLES, 90, GL_UNSIGNED_INT, 0); 
+
+
+    // inlocuiesc imaginea deseneata in fereastra cu cea randata 
+    glutSwapBuffers();
 	glFlush();
 }
 

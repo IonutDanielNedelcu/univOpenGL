@@ -34,8 +34,7 @@
               "RelativeToolTip": "Proiect1\\example.vert",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAA8AAAAXAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001001|",
-              "WhenOpened": "2025-11-06T17:21:14.14Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-06T17:21:14.14Z"
             },
             {
               "$type": "Document",
@@ -55,8 +54,8 @@
               "Title": "main.cpp",
               "DocumentMoniker": "D:\\University\\An3Sem1\\GCOpenGL\\Proiecte\\univOpenGL\\Proiect1\\Proiect1\\main.cpp",
               "RelativeDocumentMoniker": "Proiect1\\main.cpp",
-              "ToolTip": "D:\\University\\An3Sem1\\GCOpenGL\\Proiecte\\univOpenGL\\Proiect1\\Proiect1\\main.cpp*",
-              "RelativeToolTip": "Proiect1\\main.cpp*",
+              "ToolTip": "D:\\University\\An3Sem1\\GCOpenGL\\Proiecte\\univOpenGL\\Proiect1\\Proiect1\\main.cpp",
+              "RelativeToolTip": "Proiect1\\main.cpp",
               "ViewState": "AgIAAD0AAAAAAAAAAADwv2QAAAANAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000677|",
               "WhenOpened": "2025-11-06T17:21:00.892Z",
