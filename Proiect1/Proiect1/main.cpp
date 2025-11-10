@@ -223,10 +223,22 @@ void CreateCarVBO(void)
 		624.0f, 722.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
 		624.0f, 735.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
 		618.0f, 735.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+
+		// lumina far 1
+		496.0f, 695.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
+		410.0f, 660.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
+		410.0f, 740.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
+		496.0f, 703.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
+
+		// lumina far 2
+		496.0f, 727.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
+		410.0f, 690.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
+		410.0f, 772.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
+		496.0f, 735.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 0.2f,
 	};
 
 	GLuint IndicesCar[] = {
-		// corpul rosu
+		// corpul 
 		0, 1, 2,
 		0, 2, 3,
 
@@ -268,7 +280,13 @@ void CreateCarVBO(void)
 		40, 41, 42,
 		40, 42, 43,
 		44, 45, 46,
-		44, 46, 47
+		44, 46, 47,
+
+		// lumina farurilor
+		48, 49, 50,
+		48, 50, 51,
+		52, 53, 54,
+		52, 54, 55,
 	};
 
 	// se creeaza / se leaga un VAO (Vertex Array Object) - util cand se utilizeaza mai multe VBO
@@ -414,6 +432,18 @@ void CreateBusVBO(void)
 		380.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
 		380.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
 		350.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// lumina far 1
+		145.0f, 670.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
+		50.0f, 610.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
+		50.0f, 740.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
+		145.0f, 680.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
+
+		// lumina far 2
+		145.0f, 750.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
+		50.0f, 690.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
+		50.0f, 820.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
+		145.0f, 760.0f, 0.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.2f,
 	};
 
 	GLuint IndicesBus[] = {
@@ -486,6 +516,12 @@ void CreateBusVBO(void)
 		// geam 4 dreapta
 		72, 73, 74,
 		72, 74, 75,
+
+		// lumina faruri
+		76, 77, 78,
+		76, 78, 79,
+		80, 81, 82,
+		80, 82, 83,
 	};
 
 	// se creeaza / se leaga un VAO (Vertex Array Object)
@@ -602,17 +638,22 @@ void RenderFunction(void)
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, (GLvoid*)(26 * sizeof(GL_UNSIGNED_INT)));
 	glDisable(GL_LINE_STIPPLE); // dezactivez linia punctata
 
+	// activez blending pentru a desena farurile cu transparenta
+	glEnable(GL_BLEND);
+	// setez functia de blending
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	// ===== DESENARE AUTOBUZ SCOLAR =====
 	glBindVertexArray(VaoBusId);
 	
 	// desenez toate componentele autobuzului
-	glDrawElements(GL_TRIANGLES, 114, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, 126, GL_UNSIGNED_INT, 0);
 
 	// ===== DESENARE MINI COOPER =====
 	glBindVertexArray(VaoCarId);
 	
 	// desenez toate componentele masinii 
-	glDrawElements(GL_TRIANGLES, 78, GL_UNSIGNED_INT, 0); 
+	glDrawElements(GL_TRIANGLES, 90, GL_UNSIGNED_INT, 0); 
 
 	glFlush();
 }
