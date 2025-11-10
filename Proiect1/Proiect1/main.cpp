@@ -26,6 +26,9 @@ GLuint
 	VaoCarId,
 	VboCarId,
 	EboCarId,
+	VaoBusId,
+	VboBusId,
+	EboBusId,
 	ColorBufferId,
 	myMatrixLocation,
 	codColLocation,
@@ -294,6 +297,235 @@ void CreateCarVBO(void)
 	// atentie - culorile functioneaza aici cu RGBa, au 4 valori
 }
 
+void CreateBusVBO(void)
+{
+	// varfurile pentru autobuz
+	GLfloat VerticesBus[] = {
+		// corpul principal 
+		150.0f, 660.0f, 0.0f, 1.0f,		1.0f, 0.85f, 0.0f, 1.0f,
+		400.0f, 660.0f, 0.0f, 1.0f,		1.0f, 0.85f, 0.0f, 1.0f,
+		400.0f, 770.0f, 0.0f, 1.0f,		1.0f, 0.85f, 0.0f, 1.0f,
+		150.0f, 770.0f, 0.0f, 1.0f,		1.0f, 0.85f, 0.0f, 1.0f,
+
+		// parbrizul
+		170.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		190.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		190.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		170.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// plafonul
+		190.0f, 670.0f, 0.0f, 1.0f,		1.0f, 0.90f, 0.2f, 1.0f,
+		390.0f, 670.0f, 0.0f, 1.0f,		1.0f, 0.90f, 0.2f, 1.0f,
+		390.0f, 760.0f, 0.0f, 1.0f,		1.0f, 0.90f, 0.2f, 1.0f,
+		190.0f, 760.0f, 0.0f, 1.0f,		1.0f, 0.90f, 0.2f, 1.0f,
+
+		// roata fata stanga
+		180.0f, 655.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		220.0f, 655.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		220.0f, 660.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		180.0f, 660.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// roata fata dreapta
+		180.0f, 770.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		220.0f, 770.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		220.0f, 775.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		180.0f, 775.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// roata spate stanga
+		330.0f, 655.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		370.0f, 655.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		370.0f, 660.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		330.0f, 660.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// roata spate dreapta
+		330.0f, 770.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		370.0f, 770.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		370.0f, 775.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+		330.0f, 775.0f, 0.0f, 1.0f,		0.0f, 0.0f, 0.0f, 1.0f,
+
+		// far stanga
+		145.0f, 670.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		150.0f, 670.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		150.0f, 680.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		145.0f, 680.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+
+		// far dreapta
+		145.0f, 750.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		150.0f, 750.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		150.0f, 760.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+		145.0f, 760.0f, 0.0f, 1.0f,		1.0f, 1.0f, 0.0f, 1.0f,
+
+		// stop stanga
+		400.0f, 665.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		406.0f, 665.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		406.0f, 678.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		400.0f, 678.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+
+		// stop dreapta
+		400.0f, 752.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		406.0f, 752.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		406.0f, 765.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+		400.0f, 765.0f, 0.0f, 1.0f,		0.90f, 0.10f, 0.10f, 1.0f,
+
+		// geam 1 stanga 
+		195.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		225.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		225.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		195.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// geam 2 stanga
+		270.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		300.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		300.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		270.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// geam 3 stanga
+		310.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		340.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		340.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		310.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// geam 4 stanga
+		350.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		380.0f, 665.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		380.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		350.0f, 670.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// geam 1 dreapta 
+		195.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		225.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		225.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		195.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// geam 2 dreapta
+		270.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		300.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		300.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		270.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// geam 3 dreapta
+		310.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		340.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		340.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		310.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+
+		// geam 4 dreapta
+		350.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		380.0f, 760.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		380.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+		350.0f, 765.0f, 0.0f, 1.0f,		0.5f, 0.7f, 0.9f, 1.0f,
+	};
+
+	GLuint IndicesBus[] = {
+		// corpul principal 
+		0, 1, 2,
+		0, 2, 3,
+
+		// parbrizul
+		4, 5, 6,
+		4, 6, 7,
+
+		// plafonul
+		8, 9, 10,
+		8, 10, 11,
+
+		// roata fata stanga
+		12, 13, 14,
+		12, 14, 15,
+
+		// roata fata dreapta
+		16, 17, 18,
+		16, 18, 19,
+
+		// roata spate stanga
+		20, 21, 22,
+		20, 22, 23,
+
+		// roata spate dreapta
+		24, 25, 26,
+		24, 26, 27,
+
+		28, 29, 30,
+		28, 30, 31,
+		32, 33, 34,
+		32, 34, 35,
+
+		36, 37, 38,
+		36, 38, 39,
+		40, 41, 42,
+		40, 42, 43,
+
+		// geam 1 stanga 
+		44, 45, 46,
+		44, 46, 47,
+
+		// geam 2 stanga 
+		48, 49, 50,
+		48, 50, 51,
+
+		// geam 3 stanga 
+		52, 53, 54,
+		52, 54, 55,
+
+		// geam 4 stanga 
+		56, 57, 58,
+		56, 58, 59,
+
+		// geam 1 dreapta
+		60, 61, 62,
+		60, 62, 63,
+
+		// geam 2 dreapta
+		64, 65, 66,
+		64, 66, 67,
+
+		// geam 3 dreapta
+		68, 69, 70,
+		68, 70, 71,
+
+		// geam 4 dreapta
+		72, 73, 74,
+		72, 74, 75,
+	};
+
+	// se creeaza / se leaga un VAO (Vertex Array Object)
+	glGenVertexArrays(1, &VaoBusId);
+	glBindVertexArray(VaoBusId);
+
+	// se creeaza un buffer nou pentru autobuz
+	glGenBuffers(1, &VboBusId);
+	// este setat ca buffer curent
+	glBindBuffer(GL_ARRAY_BUFFER, VboBusId);
+	// varfurile sunt "copiate" in bufferul curent
+	glBufferData(GL_ARRAY_BUFFER, sizeof(VerticesBus), VerticesBus, GL_STATIC_DRAW);
+
+	//	Se creeaza un buffer pentru indici
+	glGenBuffers(1, &EboBusId);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EboBusId);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(IndicesBus), IndicesBus, GL_STATIC_DRAW);
+
+	//	Se activeaza lucrul cu atribute
+	//  Se asociaza atributul (0 = coordonate) pentru shader
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)0);
+	//  Se asociaza atributul (1 =  culoare) pentru shader
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (GLvoid*)(4 * sizeof(GLfloat)));
+}
+
+void DestroyBusVBO(void)
+{
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glDeleteBuffers(1, &EboBusId);
+	glDeleteBuffers(1, &VboBusId);
+
+	glBindVertexArray(0);
+	glDeleteVertexArrays(1, &VaoBusId);
+}
+
 void DestroyCarVBO(void)
 {
 	glDisableVertexAttribArray(1);
@@ -334,7 +566,8 @@ void Initialize(void)
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f); // culoarea de fond a ecranului
 	CreateVBO();
-	CreateCarVBO();  
+	CreateCarVBO();
+	CreateBusVBO();
 	CreateShaders();
 
 	codColLocation = glGetUniformLocation(ProgramId, "codCol");
@@ -369,17 +602,24 @@ void RenderFunction(void)
 	glDrawElements(GL_LINES, 6, GL_UNSIGNED_INT, (GLvoid*)(26 * sizeof(GL_UNSIGNED_INT)));
 	glDisable(GL_LINE_STIPPLE); // dezactivez linia punctata
 
+	// ===== DESENARE AUTOBUZ SCOLAR =====
+	glBindVertexArray(VaoBusId);
+	
+	// desenez toate componentele autobuzului
+	glDrawElements(GL_TRIANGLES, 114, GL_UNSIGNED_INT, 0);
+
 	// ===== DESENARE MINI COOPER =====
 	glBindVertexArray(VaoCarId);
 	
 	// desenez toate componentele masinii 
-	glDrawElements(GL_TRIANGLES, 78, GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, 78, GL_UNSIGNED_INT, 0); 
 
 	glFlush();
 }
 void Cleanup(void)
 {
 	DestroyShaders();
+	DestroyBusVBO();
 	DestroyCarVBO();  
 	DestroyVBO();
 }
