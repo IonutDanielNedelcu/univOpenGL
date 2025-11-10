@@ -34,17 +34,78 @@ GLuint
 	codColLocation,
 	ProgramId;
 
+GLuint
+	matrTranslBusUpLocation, matrRotBusUpLocation, matrTranslCarUpLocation, matrRotCarUpLocation;
+	
+
 GLfloat
 	winWidth = 1400, winHeight = 750;
 
 
 float xMin = 0.f, xMax = 1920.f, yMin = 0.f, yMax = 1080.f;
-
+float xBus=1920.0f, stepBus=0.1f, xCarUp=2500.0f, stepCarUp=0.13f, angleBus=0.0f, angleCarUp=0.0f;
+float yBus = 0.0f, yCarUp = 0.0f;
+float xBusRotationPoint = 1100.0f, yBusRotationPoint = 600.0f;
+float xCarUpRotationPoint = 600.0f , yCarUpRotationPoint = 400.0f;
+bool station = false;
 
 glm::mat4
 	myMatrix, resizeMatrix;
 
+glm::mat4
+	matrTranslBusUpX, matrTranslBusUpY, matrRotBusUp, matrTranslCarUp, matrRotCarUp,
+	matrTranslBusToOrigin, matrTranslBusFromOrigin, matrTranslCarUpToOrigin, matrTranslCarUpFromOrigin;
 
+glm::vec3 busRotationPoint1(xBusRotationPoint, yBusRotationPoint, 0.0f),
+			upCarRotationPoint1(xCarUpRotationPoint, yCarUpRotationPoint, 0.0f);
+
+
+void MoveThings(void)
+{
+
+	if (xBus > 600)
+	{
+		xBus = xBus - 0.15;
+	}
+	else if (angleBus >= -0.13 && yBus < 100)
+	{
+		angleBus = angleBus - 0.0001;
+		xBus = xBus - 0.18;
+		yBus = yBus + 0.1;
+		station = true;
+	}
+	else if (angleBus <= 0 && xBus > 200 && station == true)
+	{
+		xBusRotationPoint = 100.0f;
+		yBusRotationPoint = 1000.0f;
+		angleBus = angleBus + 0.00005;
+		xBus = xBus - (stepBus);
+		yBus = yBus + 0.05;
+	}
+
+	if (xCarUp > 900)
+	{
+		xCarUp = xCarUp - 0.2;
+	}
+	else
+	{
+		xCarUp = xCarUp - 0.4;
+		if (yCarUp > -160)
+			yCarUp = yCarUp - 0.1;
+	}
+
+	if (xCarUp < -700.0)
+	{
+		xBus = 1920.0f;
+		yBus = 0.0f;
+		xCarUp = 2500.0f;
+		yCarUp = 0.0f;
+		station = false;
+		angleBus = 0.0f;
+	}
+
+	glutPostRedisplay();
+}
 
 
 void CreateVBO(void)
@@ -610,13 +671,26 @@ void Initialize(void)
 	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
 
 	resizeMatrix = glm::ortho(xMin, xMax, yMin, yMax);
+
+	glutIdleFunc(MoveThings);
 }
 void RenderFunction(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT);       
 
+	matrTranslBusUpX = glm::translate(glm::mat4(1.0f), glm::vec3(xBus, yBus, 0.0f));
+	matrRotBusUp = glm::rotate(glm::mat4(1.0f), angleBus, glm::vec3(0.0f, 0.0f, 1.0f));
+	matrTranslBusToOrigin = glm::translate(glm::mat4(1.0f), -busRotationPoint1);
+	matrTranslBusFromOrigin = glm::translate(glm::mat4(1.0f), busRotationPoint1);
+
+	matrTranslCarUpToOrigin = glm::translate(glm::mat4(1.0f), -upCarRotationPoint1);
+	matrTranslCarUpFromOrigin = glm::translate(glm::mat4(1.0f), upCarRotationPoint1);
+
+	matrTranslCarUp = glm::translate(glm::mat4(1.0f), glm::vec3(xCarUp, yCarUp, 0.0));
+
 	// redimensionarea ferestrei
 	myMatrix = resizeMatrix;
+
 	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 
 	// ===== DESENARE BACKGROUND =====
@@ -639,9 +713,17 @@ void RenderFunction(void)
 	glDisable(GL_LINE_STIPPLE); // dezactivez linia punctata
 
 	// activez blending pentru a desena farurile cu transparenta
-	glEnable(GL_BLEND);
+		glEnable(GL_BLEND);
 	// setez functia de blending
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
+
+
+	// matricea animatiei autobuzului de sus
+
+	myMatrix = resizeMatrix * matrTranslBusFromOrigin * matrRotBusUp * matrTranslBusToOrigin * matrTranslBusUpX;
+	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
 
 	// ===== DESENARE AUTOBUZ SCOLAR =====
 	glBindVertexArray(VaoBusId);
@@ -649,14 +731,26 @@ void RenderFunction(void)
 	// desenez toate componentele autobuzului
 	glDrawElements(GL_TRIANGLES, 126, GL_UNSIGNED_INT, 0);
 
+
+
+	// matricea animatiei masinii de sus
+
+	myMatrix = resizeMatrix * matrTranslCarUp;
+	glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
+
 	// ===== DESENARE MINI COOPER =====
 	glBindVertexArray(VaoCarId);
 	
 	// desenez toate componentele masinii 
 	glDrawElements(GL_TRIANGLES, 90, GL_UNSIGNED_INT, 0); 
 
+
+
+
+	glutSwapBuffers();
 	glFlush();
 }
+
 void Cleanup(void)
 {
 	DestroyShaders();
@@ -668,7 +762,7 @@ void Cleanup(void)
 int main(int argc, char* argv[])
 {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(0, 0); // pozitia initiala a ferestrei
 	glutInitWindowSize(winWidth, winHeight); //dimensiunile ferestrei
 	glutCreateWindow("Grafica pe calculator - Proiect 1"); // titlul ferestrei
