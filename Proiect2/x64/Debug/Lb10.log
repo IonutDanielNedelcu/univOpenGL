@@ -1,0 +1,18 @@
+﻿  D:freeglut.dll
+  D:glew32.dll
+  D:glew32s.dll
+  3 File(s) copied
+  D:glfw3.dll
+  D:glfw3dll.dll
+  D:glfw3_mt.dll
+  3 File(s) copied
+  D:SOIL.dll
+  1 File(s) copied
+  10_01_modele3D.cpp
+D:\University\An3Sem1\GCOpenGL\Lb10\Lb10\10_01_modele3D.cpp(47,10): warning C4305: 'initializing': truncation from 'double' to 'float'
+D:\University\An3Sem1\GCOpenGL\Lb10\Lb10\10_01_modele3D.cpp(68,12): warning C4305: 'initializing': truncation from 'double' to 'float'
+D:\University\An3Sem1\GCOpenGL\Lb10\Lb10\10_01_modele3D.cpp(68,31): warning C4305: 'initializing': truncation from 'double' to 'float'
+D:\University\An3Sem1\GCOpenGL\Lb10\Lb10\10_01_modele3D.cpp(92,11): warning C4305: '-=': truncation from 'double' to 'float'
+D:\University\An3Sem1\GCOpenGL\Lb10\Lb10\10_01_modele3D.cpp(95,11): warning C4305: '+=': truncation from 'double' to 'float'
+D:\University\An3Sem1\GCOpenGL\Lb10\Lb10\10_01_modele3D.cpp(299,14): error C4996: 'fopen': This function or variable may be unsafe. Consider using fopen_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+D:\University\An3Sem1\GCOpenGL\Lb10\Lb10\10_01_modele3D.cpp(319,28): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
