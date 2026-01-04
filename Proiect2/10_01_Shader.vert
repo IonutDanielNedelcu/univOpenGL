@@ -1,53 +1,35 @@
-//
-// ================================================
-// | Grafica pe calculator                        |
-// ================================================
-// | Laboratorul X - 10_01_Shader.vert |
-// =====================================
-// 
-//  Shaderul de varfuri / Vertex shader - afecteaza geometria scenei; 
- 
- #version 330 core
+#version 330 core
 
-
+// Atribute de intrare
 layout(location=0) in vec3 in_Position;
 layout(location=1) in vec3 in_Normal;
+layout(location=2) in vec2 in_TexCoord; // Aici intra coordonatele UV din OBJ
 
-//  Variabile de iesire;
+// Variabile de iesire catre Fragment Shader
 out vec3 FragPos;
 out vec3 Normal;
 out vec3 inViewPos;
 out vec3 inLightPos;
 out vec4 ex_Color;
+out vec2 tex_Coord; // Aici le trimitem mai departe
 
-//  Variabile uniforme;
-uniform int nrVertices;
 uniform mat4 myMatrix;
-uniform vec3 viewPos;
 uniform mat4 view;
 uniform mat4 projection;
- 
+uniform vec3 viewPos; // Pozitia camerei (pt specular)
 
 void main(void)
-  {
-    // Transformari in spatiul de modelare
+{
     gl_Position = projection * view * myMatrix * vec4(in_Position, 1.0);
-
-    // Pentru modelul de iluminare 
-    // Atribute ale varfurilor
+    
     FragPos = mat3(myMatrix) * in_Position;
     Normal = mat3(myMatrix) * in_Normal;
-    // Pozitia observatorului
-    inViewPos = viewPos;
-
-    // Pozitia sursei de lumina (coincide cu a observatorului)
-    // inLightPos = viewPos;
     
-    // Pozitia sursei de lumina (diferita de a observatorului)
-    inLightPos = vec3(5.0, 5.0, 7.0);
+    inViewPos = viewPos;
+    inLightPos = vec3(0.0, 20.0, 10.0); // Pozitia luminii (poti sa o muti)
+    ex_Color = vec4(1.0, 1.0, 1.0, 1.0); // Culoare default alba
 
-    // Culoarea varfurilor
- 	// ex_Color=vec4(1.2 * gl_VertexID/nrVertices, 0.95 * gl_VertexID/nrVertices, 1.5 * gl_VertexID/nrVertices, 1.0);
-	 ex_Color=vec4(0.59, 0.29, 0.0, 1.0);
-   } 
- 
+    // Transmiterea coordonatelor de texturare
+    // Uneori texturile sunt rasturnate, deci folosim 1.0 - y daca e cazul
+    tex_Coord = vec2(in_TexCoord.x, 1.0 - in_TexCoord.y); 
+}

@@ -1,0 +1,30 @@
+# Ignore common Visual Studio and build artifacts
+.vs/
+*.suo
+*.user
+*.VC.db
+*.ipch
+
+# Ignore object, binary and pdb files
+*.o
+*.exe
+*.dll
+*.pdb
+
+# Ignore Debug folders (recursive)
+**/Debug/
+**/debug/
+**/*/Debug/
+**/*/debug/
+
+# Ignore specific platform debug folders
+**/x64/Debug/
+**/x86/Debug/
+
+# Ignore build logs and temporary files
+*.log
+*.tmp
+
+# Keep the repository clean from generated VS files
+*_i.c
+*_p.c

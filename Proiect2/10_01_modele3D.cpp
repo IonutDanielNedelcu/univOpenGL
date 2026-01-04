@@ -2,21 +2,22 @@
 // ================================================
 // | Grafica pe calculator                        |
 // ================================================
-// | Laboratorul X - 10_01_modele3D.cpp |
-// =============================================
+// | Laboratorul X - 10_01_modele3D.cpp           |
+// ================================================
 // 
-// Program care deseneaza un model 3D importat  
+// Program FINAL: Camera + BRAD GENERAT PROCEDURAL (Fara erori de geometrie)
 
 // Biblioteci
-#include <windows.h>  // biblioteci care urmeaza sa fie incluse
+#include <windows.h>  
 #include <stdio.h>
-#include <stdlib.h> // necesare pentru citirea shader-elor
+#include <stdlib.h> 
 #include <cstdlib> 
 #include <vector>
 #include <math.h>
 #include <iostream>
-#include <GL/glew.h> // glew apare inainte de freeglut
-#include <GL/freeglut.h> // nu trebuie uitat freeglut.h
+#include <GL/glew.h> 
+#include <GL/freeglut.h> 
+#include "SOIL.h"
 
 #include "loadShaders.h"
 
@@ -26,364 +27,329 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "objloader.hpp"  
 
+// --- IDENTIFICATORI OPENGL ---
+GLuint ProgramId;
+GLuint nrVertLocation, myMatrixLocation, viewPosLocation, viewLocation, projLocation;
 
-//  Identificatorii obiectelor de tip OpenGL;
-GLuint
-	VaoId,
-	VboId,
-	ProgramId,
-	nrVertLocation,
-	myMatrixLocation,
-	viewPosLocation,
-	viewLocation,
-	projLocation;
-// Sfera
-GLuint SphereVao = 0;
-GLuint SphereVbo = 0;
-GLuint SphereEbo = 0;
-int sphereIndexCount = 0;
+// 1. Variabile SUFRAGERIE
+GLuint VaoIdRoom, VboIdRoom, TextureRoom;
+int nrVerticesRoom;
+std::vector<glm::vec3> roomVertices;
+std::vector<glm::vec2> roomUvs;
+std::vector<glm::vec3> roomNormals;
 
-// Valoarea lui pi
-float PI = 3.141592;
+// 2. Variabile BRAD (Generat manual)
+GLuint VaoIdTree, VboIdTree, TextureTree;
+int nrVerticesTree;
+std::vector<glm::vec3> treeVertices;
+std::vector<glm::vec2> treeUvs;
+std::vector<glm::vec3> treeNormals;
 
-// Variabila pentru numarul de varfuri
-int nrVertices;
+// --- SETARI GENERALE ---
+float PI = 3.141592f;
+glm::mat4 myMatrix, view, projection;
 
-// Vectori pentru varfuri, coordonate de texturare, normale
-std::vector<glm::vec3> vertices;
-std::vector<glm::vec2> uvs;
-std::vector<glm::vec3> normals;  
+// TINTA Camerei (Centrul modelului)
+float refX = 0.0f, refY = 0.0f, refZ = 0.0f;
+// Pozitia OBSERVATORULUI
+float obsX, obsY, obsZ;
 
-// Matrice utilizate
-glm::mat4 myMatrix; 
-glm::mat4 view;
-glm::mat4 projection;
+// --- SETARI CAMERA ---
+float alpha = 0.2f;
+float beta = -0.5f;
+float dist = 6.0f;
 
-//	Elemente pentru matricea de vizualizare;
-float refX = 0.0f, refY = 0.0f, refZ = 0.0f,
-obsX, obsY, obsZ,
-vX = 0.0f, vY = 0.0f, vZ = 1.0f;
-//	Elemente pentru deplasarea pe sfera;
-float alpha = 0.0f, beta = 0.0f, dist = 6.0f,
-incrAlpha1 = 0.01, incrAlpha2 = 0.01;
-//	Elemente pentru matricea de proiectie;
-float width = 800, height = 600, dNear = 4.f, fov = 60.f * PI / 180;
+float minAlpha = 0.01f;
+float maxAlpha = 1.5f;
+float incrAlpha = 0.05f;
+float incrBeta = 0.05f;
+
+// Proiectie
+float width = 1200, height = 900, dNear = 0.1f, fov = 60.f * PI / 180;
+
+// --- SETARI POZITIE BRAD ---
+// Ajustam Y la 0.0f ca sa stea pe podea (conul generat are baza la Y=0)
+glm::vec3 treePosition(2.9f, 3.0f, -0.5f);
+// Scalare normala (1.0) pentru ca obiectul generat are marimi standard (2 metri inaltime)
+float treeScale = 0.5f;
+
+// --- FUNCTIE GENERARE CON (BRAD) ---
+// Aceasta functie inlocuieste incarcarea din fisier .obj
+void CreateProceduralCone(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
+{
+    verts.clear(); norms.clear(); uvs.clear();
+
+    float height = 2.5f;    // Inaltime brad
+    float radius = 1.0f;    // Latime baza
+    int segments = 32;      // Rotunjime
+
+    glm::vec3 topPoint(0.0f, height, 0.0f);
+    glm::vec3 centerBottom(0.0f, 0.0f, 0.0f);
+
+    for (int i = 0; i < segments; i++) {
+        float angle1 = (float)i / segments * 2.0f * PI;
+        float angle2 = (float)(i + 1) / segments * 2.0f * PI;
+
+        float x1 = cos(angle1) * radius;
+        float z1 = sin(angle1) * radius;
+        float x2 = cos(angle2) * radius;
+        float z2 = sin(angle2) * radius;
+
+        glm::vec3 p1(x1, 0.0f, z1);
+        glm::vec3 p2(x2, 0.0f, z2);
+
+        // Fata laterala
+        verts.push_back(topPoint);
+        verts.push_back(p1);
+        verts.push_back(p2);
+
+        // Calcul normala
+        glm::vec3 n = glm::normalize(glm::cross(p1 - topPoint, p2 - topPoint));
+        norms.push_back(n); norms.push_back(n); norms.push_back(n);
+
+        // Texturare simpla
+        uvs.push_back(glm::vec2(0.5f, 1.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+        uvs.push_back(glm::vec2(1.0f, 0.0f));
+
+        // Baza (ca sa nu se vada gol pe dedesubt)
+        verts.push_back(centerBottom);
+        verts.push_back(p2);
+        verts.push_back(p1);
+
+        norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+        norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+        norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+
+        uvs.push_back(glm::vec2(0.5f, 0.5f));
+        uvs.push_back(glm::vec2(1.0f, 0.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+    }
+}
 
 
+// ZOOM (+/-)
 void processNormalKeys(unsigned char key, int x, int y)
 {
-	switch (key) {
-	case '+':
-		dist -= 0.25;	//	apasarea tastelor `-` si `+` schimba pozitia observatorului (se departeaza / aproprie);
-		break;
-	case '-':
-		dist += 0.25;
-		break;
-	}
-	if (key == 27)
-		exit(0);
+    switch (key) {
+    case '+':
+        dist -= 0.5f;
+        if (dist < 1.0f) dist = 1.0f;
+        break;
+    case '-':
+        dist += 0.5f;
+        break;
+    }
+    if (key == 27) exit(0);
 }
 
+// ROTIRE (Sageti)
 void processSpecialKeys(int key, int xx, int yy)
 {
-	switch (key)				//	Procesarea tastelor 'LEFT', 'RIGHT', 'UP', 'DOWN';
-	{							//	duce la deplasarea observatorului pe suprafata sferica in jurul cubului;
-	case GLUT_KEY_LEFT:
-		beta -= 0.01;
-		break;
-	case GLUT_KEY_RIGHT:
-		beta += 0.01;
-		break;
-	case GLUT_KEY_UP:
-		alpha += incrAlpha1;
-		if (abs(alpha - PI / 2) < 0.05)
-		{
-			incrAlpha1 = 0.f;
-		}
-		else
-		{
-			incrAlpha1 = 0.01f;
-		}
-		break;
-	case GLUT_KEY_DOWN:
-		alpha -= incrAlpha2;
-		if (abs(alpha + PI / 2) < 0.05)
-		{
-			incrAlpha2 = 0.f;
-		}
-		else
-		{
-			incrAlpha2 = 0.01f;
-		}
-		break;
-	}
+    switch (key)
+    {
+    case GLUT_KEY_LEFT:
+        beta -= incrBeta;
+        break;
+    case GLUT_KEY_RIGHT:
+        beta += incrBeta;
+        break;
+    case GLUT_KEY_UP:
+        alpha += incrAlpha;
+        if (alpha > maxAlpha) alpha = maxAlpha;
+        break;
+    case GLUT_KEY_DOWN:
+        alpha -= incrAlpha;
+        if (alpha < minAlpha) alpha = minAlpha;
+        break;
+    }
 }
 
-// Se initializeaza un vertex Buffer Object(VBO) pentru transferul datelor spre memoria placii grafice(spre shadere);
-// In acesta se stocheaza date despre varfuri;
-void CreateVBO(void)
+GLuint LoadTexture(const char* texturePath)
 {
+    GLuint textureId;
+    glGenTextures(1, &textureId);
+    glBindTexture(GL_TEXTURE_2D, textureId);
 
-// Generare VAO;
-  glGenVertexArrays(1, &VaoId);
-  glBindVertexArray(VaoId);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
- // Generare VBO - varfurile si normalele sunt memorate in sub-buffere;
-  glGenBuffers(1, &VboId);
-  glBindBuffer(GL_ARRAY_BUFFER, VboId);
-	size_t vertsBytes = vertices.size() * sizeof(glm::vec3);
-	size_t normsBytes = normals.size() * sizeof(glm::vec3);
-	if (vertices.size() > 0) {
-		glBufferData(GL_ARRAY_BUFFER, vertsBytes + normsBytes, NULL, GL_STATIC_DRAW);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, vertsBytes, &vertices[0]);
-		if (normals.size() > 0)
-			glBufferSubData(GL_ARRAY_BUFFER, vertsBytes, normsBytes, &normals[0]);
+    int width, height, channels;
 
-		// Atributele; 
-		glEnableVertexAttribArray(0); // atributul 0 = pozitie
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-		if (normals.size() > 0) {
-			glEnableVertexAttribArray(1); // atributul 1 = normale
-			glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)(vertsBytes));
-		}
-	} else {
-		// daca nu exista varfuri, eliberam buffer si setam VaoId la 0 pentru a nu incerca desenarea
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glDeleteBuffers(1, &VboId);
-		VaoId = 0;
-	}
+    // Folosim SOIL_LOAD_RGBA (incarca si transparenta)
+    unsigned char* image = SOIL_load_image(texturePath, &width, &height, &channels, SOIL_LOAD_RGBA);
 
+    if (image)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        SOIL_free_image_data(image);
+        std::cout << "Textura incarcata: " << texturePath << std::endl;
+    }
+    else
+    {
+        std::cout << "Eroare textura: " << texturePath << std::endl;
+        return 0;
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
+    return textureId;
 }
 
-// Creeaza o sfera (positions + normals + indices) si VAO/VBO/EBO
-void CreateSphere(float radius = 1.0f, int sectors = 40, int stacks = 20)
+void UploadMeshToGPU(GLuint& vao, GLuint& vbo,
+    std::vector<glm::vec3>& verts,
+    std::vector<glm::vec3>& norms,
+    std::vector<glm::vec2>& texCoords)
 {
-	std::vector<glm::vec3> sphVerts;
-	std::vector<glm::vec3> sphNormals;
-	std::vector<GLuint> sphIndices;
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-	const float PI_local = 3.14159265359f;
-	for (int i = 0; i <= stacks; ++i) {
-		float V = (float)i / (float)stacks;
-		float phi = (V - 0.5f) * PI_local; // -pi/2 .. pi/2
-		float cosPhi = cosf(phi);
-		float sinPhi = sinf(phi);
-		for (int j = 0; j <= sectors; ++j) {
-			float U = (float)j / (float)sectors;
-			float theta = U * 2.0f * PI_local; // 0..2pi
-			float cosTheta = cosf(theta);
-			float sinTheta = sinf(theta);
+    size_t vertsBytes = verts.size() * sizeof(glm::vec3);
+    size_t normsBytes = norms.size() * sizeof(glm::vec3);
+    size_t uvsBytes = texCoords.size() * sizeof(glm::vec2);
 
-			float x = cosPhi * cosTheta;
-			float y = cosPhi * sinTheta;
-			float z = sinPhi;
+    if (verts.size() > 0) {
+        glBufferData(GL_ARRAY_BUFFER, vertsBytes + normsBytes + uvsBytes, NULL, GL_STATIC_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertsBytes, &verts[0]);
+        if (norms.size() > 0) glBufferSubData(GL_ARRAY_BUFFER, vertsBytes, normsBytes, &norms[0]);
+        if (texCoords.size() > 0) glBufferSubData(GL_ARRAY_BUFFER, vertsBytes + normsBytes, uvsBytes, &texCoords[0]);
 
-			glm::vec3 pos = glm::vec3(x * radius, y * radius, z * radius);
-			glm::vec3 norm = glm::normalize(glm::vec3(x, y, z));
-			sphVerts.push_back(pos);
-			sphNormals.push_back(norm);
-		}
-	}
-
-	for (int i = 0; i < stacks; ++i) {
-		for (int j = 0; j < sectors; ++j) {
-			int first = i * (sectors + 1) + j;
-			int second = first + sectors + 1;
-			// two triangles per sector
-			sphIndices.push_back(first);
-			sphIndices.push_back(second);
-			sphIndices.push_back(first + 1);
-
-			sphIndices.push_back(first + 1);
-			sphIndices.push_back(second);
-			sphIndices.push_back(second + 1);
-		}
-	}
-
-	sphereIndexCount = (int)sphIndices.size();
-
-	// upload to GPU
-	glGenVertexArrays(1, &SphereVao);
-	glBindVertexArray(SphereVao);
-
-	glGenBuffers(1, &SphereVbo);
-	glBindBuffer(GL_ARRAY_BUFFER, SphereVbo);
-
-	size_t vertsSize = sphVerts.size() * sizeof(glm::vec3);
-	size_t normsSize = sphNormals.size() * sizeof(glm::vec3);
-	glBufferData(GL_ARRAY_BUFFER, vertsSize + normsSize, NULL, GL_STATIC_DRAW);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, vertsSize, &sphVerts[0]);
-	glBufferSubData(GL_ARRAY_BUFFER, vertsSize, normsSize, &sphNormals[0]);
-
-	glGenBuffers(1, &SphereEbo);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SphereEbo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sphIndices.size() * sizeof(GLuint), &sphIndices[0], GL_STATIC_DRAW);
-
-	// attribute 0 = position
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	// attribute 1 = normal (offset = vertsSize)
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)(vertsSize));
-
-	// unbind VAO
-	glBindVertexArray(0);
+        glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+        if (norms.size() > 0) { glEnableVertexAttribArray(1); glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)(vertsBytes)); }
+        if (texCoords.size() > 0) { glEnableVertexAttribArray(2); glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid*)(vertsBytes + normsBytes)); }
+    }
 }
 
-
-// CreateVAO5 removed — not used
-
-//  Eliminarea obiectelor de tip VBO dupa rulare;
-void DestroyVBO(void)
-{
-  glDisableVertexAttribArray(0);
-  glDisableVertexAttribArray(1);
-  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  glBindVertexArray(0);
-  glDeleteVertexArrays(1, &VaoId);
-  
-	// VboId5/EboId5 removed with CreateVAO5 elimination
-
-		// stergere resurse sfera
-		if (SphereVao) glDeleteVertexArrays(1, &SphereVao);
-		if (SphereVbo) glDeleteBuffers(1, &SphereVbo);
-		if (SphereEbo) glDeleteBuffers(1, &SphereEbo);
+void Cleanup(void) {
+    glDeleteProgram(ProgramId);
+    glDeleteVertexArrays(1, &VaoIdRoom); glDeleteBuffers(1, &VboIdRoom);
+    glDeleteVertexArrays(1, &VaoIdTree); glDeleteBuffers(1, &VboIdTree);
 }
 
-//  Crearea si compilarea obiectelor de tip shader;
-void CreateShaders(void)
-{
-  ProgramId=LoadShaders("10_01_Shader.vert", "10_01_Shader.frag");
-  glUseProgram(ProgramId);
-}
-
-// Elimina obiectele de tip shader dupa rulare;
-void DestroyShaders(void)
-{
-  glDeleteProgram(ProgramId);
-} 
-
-//  Functia de eliberare a resurselor alocate de program;
-void Cleanup(void)
-{
-	DestroyShaders();
-	DestroyVBO();
-};
-
-//  Setarea parametrilor necesari pentru fereastra de vizualizare;
 void Initialize(void)
 {
-	glClearColor(0.95f, 0.82f, 0.4f, 1.0f); // culoarea de fond a ecranului
- 
-	// Incarcarea modelului 3D in format OBJ: incarcare directa din locatia proiectului
-	// Construim o cale relativa pornind de la fisierul sursa compilat (__FILE__).
-	std::string srcFile = __FILE__;
-	std::string srcDir;
-	size_t pos = srcFile.find_last_of("\\/");
-	if (pos != std::string::npos) srcDir = srcFile.substr(0, pos);
-	// din Lb10/Lb10 -> ../src/tor.obj
-	std::string torPath = srcDir + std::string("\\..\\src\\tor.obj");
-	bool model = loadOBJ(torPath.c_str(), vertices, uvs, normals);
-	if (model) {
-		std::cerr << "Loaded OBJ from: " << torPath << std::endl;
-	} else {
-		// Ultima incercare: incercam exact "tor.obj" in working directory (optional)
-		model = loadOBJ("tor.obj", vertices, uvs, normals);
-		if (model) std::cerr << "Loaded OBJ from working directory: tor.obj" << std::endl;
-		else std::cerr << "Warning: failed to load tor.obj from '"<<torPath<<"' and working directory." << std::endl;
-	}
-	nrVertices = vertices.size();
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
-	// Crearea VBO / shadere-lor
-	CreateVBO();
-	CreateShaders();
+    // 1. INCARCARE SUFRAGERIE
+    std::string roomPath = "livingroom.obj";
+    loadOBJ(roomPath.c_str(), roomVertices, roomUvs, roomNormals);
+    nrVerticesRoom = roomVertices.size();
 
-	// Locatii ptr shader
-	nrVertLocation = glGetUniformLocation(ProgramId, "nrVertices");
-	myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
-	viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
-	viewLocation = glGetUniformLocation(ProgramId, "view");
-	projLocation = glGetUniformLocation(ProgramId, "projection");
+    if (nrVerticesRoom > 0) {
+        glm::vec3 center(0.0f);
+        for (const auto& v : roomVertices) center += v;
+        center /= (float)nrVerticesRoom;
+        refX = center.x; refY = center.y; refZ = center.z;
+    }
 
-	// Variabile ce pot fi transmise catre shader
-	glUniform1i(nrVertLocation, nrVertices);
+    UploadMeshToGPU(VaoIdRoom, VboIdRoom, roomVertices, roomNormals, roomUvs);
+    TextureRoom = LoadTexture("livingroom.png");
 
-	// creeaza sfera (radius, sectors, stacks)
-	CreateSphere(1.0f, 40, 24);
+    // 2. GENERARE BRAD (AICI E SCHIMBAREA)
+    // Nu mai incarcam din fisier, ci generam noi conul.
+    CreateProceduralCone(treeVertices, treeNormals, treeUvs);
+    nrVerticesTree = treeVertices.size();
+
+    UploadMeshToGPU(VaoIdTree, VboIdTree, treeVertices, treeNormals, treeUvs);
+    TextureTree = LoadTexture("green.png"); // Folosim patratul verde
+
+    ProgramId = LoadShaders("10_01_Shader.vert", "10_01_Shader.frag");
+    glUseProgram(ProgramId);
+
+    nrVertLocation = glGetUniformLocation(ProgramId, "nrVertices");
+    myMatrixLocation = glGetUniformLocation(ProgramId, "myMatrix");
+    viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
+    viewLocation = glGetUniformLocation(ProgramId, "view");
+    projLocation = glGetUniformLocation(ProgramId, "projection");
+
+    glUniform1i(glGetUniformLocation(ProgramId, "myTexture"), 0);
 }
 
-//	Functia de desenare a graficii pe ecran;
 void RenderFunction(void)
 {
-   // Initializare ecran + test de adancime;
-   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-   glEnable(GL_DEPTH_TEST);
-   
-   // Matricea de modelare 
-   myMatrix = glm::rotate(glm::mat4(1.0f), PI / 2, glm::vec3(0.0, 1.0, 0.0))
-	   * glm::rotate(glm::mat4(1.0f), PI / 2, glm::vec3(0.0, 0.0, 1.0));
-   glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glEnable(GL_DEPTH_TEST);
 
-   //	Vizualizare;
-   //	Pozitia observatorului - se deplaseaza pe sfera;
-   obsX = refX + dist * cos(alpha) * cos(beta);
-   obsY = refY + dist * cos(alpha) * sin(beta);
-   obsZ = refZ + dist * sin(alpha);
-   //	Vectori pentru matricea de vizualizare;
-   glm::vec3 obs = glm::vec3(obsX, obsY, obsZ);		//	Pozitia observatorului;	
-   glm::vec3 pctRef = glm::vec3(refX, refY, refZ); 	//	Pozitia punctului de referinta;
-   glm::vec3 vert = glm::vec3(vX, vY, vZ);			//	Verticala din planul de vizualizare; 
-   // Pozitia observatorului, transmitere catre shader
-   glUniform3f(viewPosLocation, obsX, obsY, obsZ);
-   // Matricea de vizualizare, transmitere catre shader
-   view = glm::lookAt(obs, pctRef, vert);
-   glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
+    // CAMERA
+    obsY = refY + dist * sin(alpha);
+    float radiusXZ = dist * cos(alpha);
+    obsX = refX + radiusXZ * sin(beta);
+    obsZ = refZ + radiusXZ * cos(beta);
 
-   //	Proiectie;
-   projection = glm::infinitePerspective(GLfloat(fov), GLfloat(width) / GLfloat(height), dNear);
-   glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
+    glm::vec3 obs = glm::vec3(obsX, obsY, obsZ);
+    glm::vec3 pctRef = glm::vec3(refX, refY, refZ);
+    glm::vec3 vert = glm::vec3(0.0f, 1.0f, 0.0f);
 
-   // "Legarea"VAO, desenare;
-   if (VaoId != 0 && vertices.size() > 0) {
-	   glBindVertexArray(VaoId);
-	   glEnableVertexAttribArray(0); // atributul 0 = pozitie
-	   glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-	   glDrawArrays(GL_TRIANGLES, 0, (GLsizei)vertices.size());
-   }
+    glUniform3f(viewPosLocation, obsX, obsY, obsZ);
+    view = glm::lookAt(obs, pctRef, vert);
+    glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
 
-   // Desenare sfera
-   if (SphereVao && sphereIndexCount > 0) {
-	   // setam matricea de model pentru sfera (mutata usor deasupra originii ca sa nu acopere torul)
-	   glm::mat4 sphereModel = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 1.8f, 0.0f))
-		   * glm::scale(glm::mat4(1.0f), glm::vec3(0.8f));
-	   glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &sphereModel[0][0]);
+    projection = glm::infinitePerspective(GLfloat(fov), GLfloat(width) / GLfloat(height), dNear);
+    glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
 
-	   glBindVertexArray(SphereVao);
-	   glDrawElements(GL_TRIANGLES, sphereIndexCount, GL_UNSIGNED_INT, 0);
+    // 1. DESENARE SUFRAGERIE
+    if (VaoIdRoom != 0 && nrVerticesRoom > 0) {
+        glm::mat4 modelRoom = glm::mat4(1.0f);
+        glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelRoom[0][0]);
 
-	   // restauram matricea model initiala
-	   glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &myMatrix[0][0]);
-   }
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TextureRoom);
+        glBindVertexArray(VaoIdRoom);
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesRoom);
+    }
 
-   glutSwapBuffers();
-   glFlush ( );
+    // 2. DESENARE BRAD GENERAT
+    if (VaoIdTree != 0 && nrVerticesTree > 0) {
+        glm::mat4 modelTree = glm::mat4(1.0f);
+
+        modelTree = glm::translate(modelTree, treePosition);
+
+        // --- ATENTIE: Am scos rotirea! ---
+        // Conul generat de noi sta deja in picioare (Y-Up), deci nu il mai rotim.
+        // modelTree = glm::rotate(modelTree, -PI / 2.0f, glm::vec3(1.0f, 0.0f, 0.0f));
+
+        // Scalam la marime normala (1.0) sau ajustam dupa preferinta (latime, inaltime, latime)
+        modelTree = glm::scale(modelTree, glm::vec3(treeScale, treeScale * 1.5f, treeScale));
+
+        glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelTree[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TextureTree);
+        glBindVertexArray(VaoIdTree);
+
+        // Desenam normal
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesTree);
+    }
+
+    glutSwapBuffers();
+    glFlush();
 }
 
-//	Punctul de intrare in program, se ruleaza rutina OpenGL;
+void ChangeSize(int w, int h)
+{
+    width = (float)w;
+    height = (float)h;
+    if (h == 0) h = 1;
+    glViewport(0, 0, w, h);
+}
+
 int main(int argc, char* argv[])
 {
-  glutInit(&argc, argv);
-  glutInitDisplayMode(GLUT_RGBA|GLUT_DEPTH|GLUT_DOUBLE);
-  glutInitWindowPosition (100,100); 
-  glutInitWindowSize(1200,900); 
-  glutCreateWindow("Utilizarea unui model predefinit in format OBJ");
-  glewInit(); 
-  Initialize( );
-  glutIdleFunc(RenderFunction);
-  glutDisplayFunc(RenderFunction);
-  glutKeyboardFunc(processNormalKeys);
-  glutSpecialFunc(processSpecialKeys);
-  glutCloseFunc(Cleanup);
-  glutMainLoop();
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
+    glutInitWindowPosition(100, 100);
+    glutInitWindowSize(1200, 900);
+    glutCreateWindow("Camera + Brad Generat");
+    glewInit();
+    Initialize();
+    glutReshapeFunc(ChangeSize);
+    glutIdleFunc(RenderFunction);
+    glutDisplayFunc(RenderFunction);
+    glutKeyboardFunc(processNormalKeys);
+    glutSpecialFunc(processSpecialKeys);
+    glutCloseFunc(Cleanup);
+    glutMainLoop();
 }
-
