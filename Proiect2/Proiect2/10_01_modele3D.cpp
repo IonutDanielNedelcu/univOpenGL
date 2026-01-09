@@ -30,6 +30,10 @@
 // --- IDENTIFICATORI OPENGL ---
 GLuint ProgramId;
 GLuint nrVertLocation, myMatrixLocation, viewPosLocation, viewLocation, projLocation;
+GLint colorMulLocation = -1, alphaMulLocation = -1;
+GLint fireLightPosLocation = -1, fireLightColorLocation = -1, fireLightIntensityLocation = -1;
+// base fire intensity (used for flicker modulation)
+float fireBaseIntensity = 2.5f;
 
 // 1. Variabile SUFRAGERIE
 GLuint VaoIdRoom, VboIdRoom, TextureRoom;
@@ -146,9 +150,24 @@ std::vector<glm::vec3> fireplaceTopVertices;
 std::vector<glm::vec2> fireplaceTopUvs;
 std::vector<glm::vec3> fireplaceTopNormals;
 
+// Fire (deformed cone)
+GLuint VaoIdFire, VboIdFire;
+int nrVerticesFire;
+std::vector<glm::vec3> fireVertices;
+std::vector<glm::vec3> fireBasePositions; // original positions for deformation
+std::vector<glm::vec3> fireNormals;
+std::vector<glm::vec2> fireUvs;
+
 // --- SETARI SEMINEU (Fireplace) ---
 glm::vec3 fireplacePosition(-2.0f, 0.0f, -1.0f);
 float fireplaceScale = 0.8f;
+// Fireplace physical dimensions (used by procedural generators and placement)
+float fireplaceWidth = 1.2f;
+float fireplaceHeight = 1.0f;
+float fireplaceDepth = 0.6f;
+// Offsets to allow fine tuning in X/Y/Z for fireplace and fire independently
+glm::vec3 fireplaceOffset(3.0f, -0.19f, -2.9f);
+glm::vec3 fireOffset(-0.1f, 0.0f, 0.0f);
 
 // --- FUNCTIE GENERARE SEMINEU (dreptunghiuri) ---
 void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
@@ -192,7 +211,7 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
 
     // Back (-Z) with bottom opening: create left, right and top panels, leave lower-middle empty (panels placed at z = depth)
     float sideWidthOpen = 0.18f; // width of left/right side panels
-    float openingHeight = 0.45f; // height of the opening from the bottom
+    float openingHeight = 0.65f; // height of the opening from the bottom (taller)
 
     // Coordinates on front plane (z = minZ)
     float fx0 = 0.0f;
@@ -278,13 +297,13 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Inner top (ceiling) of the cavity at y = iy1 (faces downward)
-    glm::vec3 IT0(ix0, iy1, innerZ);
-    glm::vec3 IT1(ix1, iy1, innerZ);
-    glm::vec3 IT2(ix1, iy1, depth);
-    glm::vec3 IT3(ix0, iy1, depth);
-    verts.push_back(IT1); verts.push_back(IT0); verts.push_back(IT3);
-    verts.push_back(IT1); verts.push_back(IT3); verts.push_back(IT2);
+    // innerTop (ceiling) of the cavity at y = iy1 (faces downward)
+    glm::vec3 innerTop0(ix0, iy1, innerZ);
+    glm::vec3 innerTop1(ix1, iy1, innerZ);
+    glm::vec3 innerTop2(ix1, iy1, depth);
+    glm::vec3 innerTop3(ix0, iy1, depth);
+    verts.push_back(innerTop1); verts.push_back(innerTop0); verts.push_back(innerTop3);
+    verts.push_back(innerTop1); verts.push_back(innerTop3); verts.push_back(innerTop2);
     for (int i = 0; i < 6; ++i) norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
@@ -359,8 +378,35 @@ void CreateFireplaceTop(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& n
     add(c,b,f,g, glm::vec3(1.0f,0.0f,0.0f));
 }
 
-// explicit helper (no 'auto') to add two triangles to buffers
+// Create a procedural cone to be used for the fire (triangulated)
+void CreateProceduralFireCone(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
+{
+    verts.clear(); norms.clear(); uvs.clear();
+    const int segments = 24;
+    const float height = 0.45f; // smaller height for fire
+    const float radius = 0.16f; // smaller radius for fire
 
+    glm::vec3 top(0.0f, height, 0.0f);
+    glm::vec3 centerBottom(0.0f, 0.0f, 0.0f);
+
+    for (int i = 0; i < segments; ++i) {
+        float a1 = (float)i / segments * 2.0f * PI;
+        float a2 = (float)(i + 1) / segments * 2.0f * PI;
+        glm::vec3 p1(radius * cos(a1), 0.0f, radius * sin(a1));
+        glm::vec3 p2(radius * cos(a2), 0.0f, radius * sin(a2));
+
+        // Side triangle (top, p2, p1)
+        verts.push_back(top); verts.push_back(p2); verts.push_back(p1);
+        glm::vec3 n = glm::normalize(glm::cross(p2 - top, p1 - top));
+        norms.push_back(n); norms.push_back(n); norms.push_back(n);
+        uvs.push_back(glm::vec2(0.5f, 1.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(0.0f, 0.0f));
+
+        // Base triangle (centerBottom, p1, p2)
+        verts.push_back(centerBottom); verts.push_back(p1); verts.push_back(p2);
+        norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f)); norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f)); norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
+        uvs.push_back(glm::vec2(0.5f, 0.5f)); uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f));
+    }
+}
 
 
 // ZOOM (+/-)
@@ -464,6 +510,7 @@ void Cleanup(void) {
     glDeleteVertexArrays(1, &VaoIdTree); glDeleteBuffers(1, &VboIdTree);
     glDeleteVertexArrays(1, &VaoIdFireplace); glDeleteBuffers(1, &VboIdFireplace);
     glDeleteVertexArrays(1, &VaoIdFireplaceTop); glDeleteBuffers(1, &VboIdFireplaceTop);
+    glDeleteVertexArrays(1, &VaoIdFire); glDeleteBuffers(1, &VboIdFire);
 }
 
 
@@ -484,6 +531,7 @@ void Initialize(void)
     }
 
     // Align fireplace to room reference Y so it sits on the floor
+    // apply a small downward offset so the base visually rests on the floor
     fireplacePosition.y = refY;
 
     UploadMeshToGPU(VaoIdRoom, VboIdRoom, roomVertices, roomNormals, roomUvs);
@@ -516,6 +564,13 @@ void Initialize(void)
         TextureFireplaceTop = TextureRoom; // fallback to room texture if no wood
     }
 
+    // Fire (deformed cone)
+    CreateProceduralFireCone(fireVertices, fireNormals, fireUvs);
+    nrVerticesFire = fireVertices.size();
+    // store base positions for deformation
+    fireBasePositions = fireVertices;
+    UploadMeshToGPU(VaoIdFire, VboIdFire, fireVertices, fireNormals, fireUvs);
+
     ProgramId = LoadShaders("10_01_Shader.vert", "10_01_Shader.frag");
     glUseProgram(ProgramId);
 
@@ -524,6 +579,16 @@ void Initialize(void)
     viewPosLocation = glGetUniformLocation(ProgramId, "viewPos");
     viewLocation = glGetUniformLocation(ProgramId, "view");
     projLocation = glGetUniformLocation(ProgramId, "projection");
+    colorMulLocation = glGetUniformLocation(ProgramId, "globalColorMul");
+    alphaMulLocation = glGetUniformLocation(ProgramId, "globalAlphaMul");
+    fireLightPosLocation = glGetUniformLocation(ProgramId, "fireLightPos");
+    fireLightColorLocation = glGetUniformLocation(ProgramId, "fireLightColor");
+    fireLightIntensityLocation = glGetUniformLocation(ProgramId, "fireLightIntensity");
+    if (colorMulLocation >= 0) glUniform1f(colorMulLocation, 1.0f);
+    if (alphaMulLocation >= 0) glUniform1f(alphaMulLocation, 1.0f);
+    if (fireLightColorLocation >= 0) glUniform3f(fireLightColorLocation, 1.0f, 0.6f, 0.15f);
+    // smaller default intensity so the fire light is less overwhelming
+    if (fireLightIntensityLocation >= 0) glUniform1f(fireLightIntensityLocation, 2.5f);
 
     glUniform1i(glGetUniformLocation(ProgramId, "myTexture"), 0);
 }
@@ -584,23 +649,67 @@ void RenderFunction(void)
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesTree);
     }
 
+
+
     // 3. DESENARE SEMINEU (Fireplace)
+    // Draw fire first so we can blend the fireplace over it (transparent casing)
+    if (VaoIdFire != 0 && nrVerticesFire > 0) {
+        float t = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        const float fireHeight = 0.45f;
+        for (size_t i = 0; i < fireVertices.size(); ++i) {
+            glm::vec3 base = fireBasePositions[i];
+            float y = base.y / fireHeight;
+            float factor = 1.0f - y;
+            if (base.y <= 0.01f) { fireVertices[i] = base; continue; }
+            float angle = atan2(base.z, base.x);
+            float radialLen = glm::length(glm::vec2(base.x, base.z));
+            glm::vec3 radial = (radialLen > 1e-5f) ? glm::normalize(glm::vec3(base.x, 0.0f, base.z)) : glm::vec3(0.0f);
+            float disp = 0.04f * factor * (0.5f + 0.5f * sin(t * 6.0f + angle * 4.0f - y * 5.0f));
+            float bob = 0.02f * factor * sin(t * 8.0f + y * 6.0f);
+            fireVertices[i] = base + radial * disp + glm::vec3(0.0f, bob, 0.0f);
+        }
+        glBindBuffer(GL_ARRAY_BUFFER, VboIdFire);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, fireVertices.size() * sizeof(glm::vec3), &fireVertices[0]);
+
+        glm::mat4 modelFire = glm::mat4(1.0f);
+        const float fireInset = 0.28f;
+        modelFire = glm::translate(modelFire, fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.0f, fireplaceDepth - fireInset) + fireOffset);
+        modelFire = glm::scale(modelFire, glm::vec3(fireplaceScale));
+        glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelFire[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TextureTree);
+        glBindVertexArray(VaoIdFire);
+        if (fireLightPosLocation >= 0) {
+            glm::vec3 fireLightWorld = fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.18f, fireplaceDepth - fireInset) + fireOffset;
+            glUniform3f(fireLightPosLocation, fireLightWorld.x, fireLightWorld.y, fireLightWorld.z);
+        }
+        // we update and stream the animated fire vertex positions here,
+        // but defer the actual draw until after the fireplace is rendered
+        // so the fire can be drawn with a special depth state if needed.
+    }
+
+    // Now draw the fireplace casing (opaque)
     if (VaoIdFireplace != 0 && nrVerticesFireplace > 0) {
         glm::mat4 modelFireplace = glm::mat4(1.0f);
-        modelFireplace = glm::translate(modelFireplace, fireplacePosition);
+        modelFireplace = glm::translate(modelFireplace, fireplacePosition + fireplaceOffset);
         modelFireplace = glm::scale(modelFireplace, glm::vec3(fireplaceScale));
         glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelFireplace[0][0]);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, TextureFireplace);
         glBindVertexArray(VaoIdFireplace);
+        // draw as fully opaque; ensure depth writes are enabled so it occludes correctly
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        if (alphaMulLocation >= 0) glUniform1f(alphaMulLocation, 1.0f);
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesFireplace);
     }
 
     // Fireplace top (wood)
     if (VaoIdFireplaceTop != 0 && nrVerticesFireplaceTop > 0) {
         glm::mat4 modelTop = glm::mat4(1.0f);
-        modelTop = glm::translate(modelTop, fireplacePosition);
+        modelTop = glm::translate(modelTop, fireplacePosition + fireplaceOffset);
         modelTop = glm::scale(modelTop, glm::vec3(fireplaceScale));
         glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelTop[0][0]);
 
@@ -609,6 +718,59 @@ void RenderFunction(void)
         glBindVertexArray(VaoIdFireplaceTop);
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesFireplaceTop);
     }
+
+    // Now draw the fire last so it's visible inside the fireplace.
+    if (VaoIdFire != 0 && nrVerticesFire > 0) {
+        // model matrix already computed during update; recompute to be safe
+        glm::mat4 modelFire = glm::mat4(1.0f);
+        const float fireInset = 0.28f;
+        modelFire = glm::translate(modelFire, fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.0f, fireplaceDepth - fireInset) + fireOffset);
+        modelFire = glm::scale(modelFire, glm::vec3(fireplaceScale));
+        glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelFire[0][0]);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TextureTree);
+        glBindVertexArray(VaoIdFire);
+
+        // ensure fire light position updated
+        if (fireLightPosLocation >= 0) {
+            glm::vec3 fireLightWorld = fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.18f, fireplaceDepth - fireInset) + fireOffset;
+            glUniform3f(fireLightPosLocation, fireLightWorld.x, fireLightWorld.y, fireLightWorld.z);
+        }
+
+        // small, slower flicker: lower-frequency sine waves for a gentler flame
+        float ft = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        float flicker = 0.90f + 0.18f * sin(ft * 2.2f) + 0.08f * sin(ft * 0.9f + 1.3f);
+        flicker = glm::clamp(flicker, 0.6f, 1.4f);
+        if (fireLightIntensityLocation >= 0) glUniform1f(fireLightIntensityLocation, fireBaseIntensity * flicker);
+        if (colorMulLocation >= 0) {
+            float cF = 0.95f + 0.07f * sin(ft * 1.8f + 0.7f) + 0.03f * sin(ft * 0.6f);
+            cF = glm::clamp(cF, 0.85f, 1.15f);
+            glUniform1f(colorMulLocation, 2.0f * cF);
+        }
+        if (alphaMulLocation >= 0) {
+            float aF = 0.98f + 0.03f * sin(ft * 2.0f + 0.2f);
+            aF = glm::clamp(aF, 0.9f, 1.05f);
+            glUniform1f(alphaMulLocation, aF);
+        }
+
+        // Draw the fire after opaque geometry but respect depth testing so
+        // the fire does not appear through other objects. Keep depth test
+        // enabled and only disable depth writes while rendering the fire.
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LEQUAL);
+
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glDepthMask(GL_FALSE);
+        glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesFire);
+        glDepthMask(GL_TRUE);
+        if (colorMulLocation >= 0) glUniform1f(colorMulLocation, 1.0f);
+        if (alphaMulLocation >= 0) glUniform1f(alphaMulLocation, 1.0f);
+        glDisable(GL_BLEND);
+    }
+
+    
 
     glutSwapBuffers();
     glFlush();

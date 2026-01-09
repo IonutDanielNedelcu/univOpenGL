@@ -10,6 +10,11 @@ in vec2 tex_Coord;
 out vec4 out_Color;
 
 uniform sampler2D myTexture;
+uniform float globalColorMul;
+uniform float globalAlphaMul;
+uniform vec3 fireLightPos;
+uniform vec3 fireLightColor;
+uniform float fireLightIntensity;
 
 void main(void)
 {
@@ -34,7 +39,7 @@ void main(void)
     vec3 lightColor = vec3(1.0, 1.0, 1.0);
 
     // Ambient mai puternic pentru brad
-    float ambientStrength = 0.6; 
+    float ambientStrength = 0.4; 
     vec3 ambient = ambientStrength * lightColor;
   	
     // Iluminare Fata-Verso (Two Sided Lighting)
@@ -51,5 +56,15 @@ void main(void)
     vec3 specular = 0.1 * spec * lightColor; 
         
     vec3 result = (ambient + diffuse + specular) * objectColor;
-    out_Color = vec4(result, 1.0);
+    // add emissive contribution from the fire as a local light source
+    vec3 fireDir = fireLightPos - FragPos;
+    float fireDist = length(fireDir);
+    float fireAtt = fireLightIntensity / (1.0 + 2.0 * fireDist + fireDist * fireDist);
+    vec3 fireL = fireLightColor * fireAtt;
+    float fireDot = abs(dot(norm, normalize(fireDir)));
+    // Add diffuse-like and ambient-like fire glow (clamped)
+    result += clamp(fireL * fireDot * 1.6, vec3(0.0), vec3(10.0));
+    result += fireL * 0.25;
+    float finalAlpha = 1.0;
+    out_Color = vec4(result * globalColorMul, clamp(finalAlpha * globalAlphaMul, 0.0, 1.0));
 }
