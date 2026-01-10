@@ -15,6 +15,12 @@ uniform float globalAlphaMul;
 uniform vec3 fireLightPos;
 uniform vec3 fireLightColor;
 uniform float fireLightIntensity;
+// Smoke/fog region uniforms (world-space)
+uniform vec3 smokeRegionMin;
+uniform vec3 smokeRegionMax;
+uniform float smokeRange; // vertical range over which smoke fades
+uniform vec3 smokeColor;
+uniform float smokeIntensity;
 
 void main(void)
 {
@@ -66,5 +72,17 @@ void main(void)
     result += clamp(fireL * fireDot * 1.6, vec3(0.0), vec3(10.0));
     result += fireL * 0.25;
     float finalAlpha = 1.0;
-    out_Color = vec4(result * globalColorMul, clamp(finalAlpha * globalAlphaMul, 0.0, 1.0));
+    // apply smoke fog inside region
+    float fogFactor = 0.0;
+    // check X/Z bounds
+    if (FragPos.x >= smokeRegionMin.x && FragPos.x <= smokeRegionMax.x && FragPos.z >= smokeRegionMin.z && FragPos.z <= smokeRegionMax.z) {
+        // compute how close to the top we are
+        float dy = smokeRegionMax.y - FragPos.y;
+        fogFactor = clamp(dy / smokeRange, 0.0, 1.0);
+        // optional falloff near bottom
+        float bottomFade = clamp((FragPos.y - smokeRegionMin.y) / (smokeRange * 0.2), 0.0, 1.0);
+        fogFactor *= bottomFade;
+    }
+    vec3 finalCol = mix(result * globalColorMul, smokeColor, fogFactor * smokeIntensity);
+    out_Color = vec4(finalCol, clamp(finalAlpha * globalAlphaMul, 0.0, 1.0));
 }

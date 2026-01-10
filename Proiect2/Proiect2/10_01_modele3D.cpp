@@ -15,6 +15,7 @@
 #include <vector>
 #include <math.h>
 #include <iostream>
+#include <random>
 #include <GL/glew.h> 
 #include <GL/freeglut.h> 
 #include "SOIL.h"
@@ -157,6 +158,24 @@ std::vector<glm::vec3> fireVertices;
 std::vector<glm::vec3> fireBasePositions; // original positions for deformation
 std::vector<glm::vec3> fireNormals;
 std::vector<glm::vec2> fireUvs;
+
+// --- SMOKE PARTICLE SYSTEM ---
+struct SmokeParticle {
+    glm::vec3 pos;
+    glm::vec3 vel;
+    float life; // remaining life [0..1]
+    float size;
+};
+std::vector<SmokeParticle> smokeParticles;
+GLuint VaoIdSmoke = 0, VboIdSmoke = 0;
+GLuint ParticleProgram = 0;
+bool smokeUseFallbackShader = false;
+int maxSmokeParticles = 800;
+float smokeSpawnRate = 240.0f; // particles per second (more particles, smaller size)
+float lastSmokeTime = 0.0f;
+float lastFrameTime = 0.0f;
+// smoke stop factor (fraction of fireplace height where smoke should stop)
+float smokeCeilingFactor = 0.55f; // 0..1 (lower = stop lower)
 
 // --- SETARI SEMINEU (Fireplace) ---
 glm::vec3 fireplacePosition(-2.0f, 0.0f, -1.0f);
@@ -584,13 +603,64 @@ void Initialize(void)
     fireLightPosLocation = glGetUniformLocation(ProgramId, "fireLightPos");
     fireLightColorLocation = glGetUniformLocation(ProgramId, "fireLightColor");
     fireLightIntensityLocation = glGetUniformLocation(ProgramId, "fireLightIntensity");
+    // smoke fog uniforms
+    GLint smokeRegionMinLoc = glGetUniformLocation(ProgramId, "smokeRegionMin");
+    GLint smokeRegionMaxLoc = glGetUniformLocation(ProgramId, "smokeRegionMax");
+    GLint smokeRangeLoc = glGetUniformLocation(ProgramId, "smokeRange");
+    GLint smokeColorLoc = glGetUniformLocation(ProgramId, "smokeColor");
+    GLint smokeIntensityLoc = glGetUniformLocation(ProgramId, "smokeIntensity");
     if (colorMulLocation >= 0) glUniform1f(colorMulLocation, 1.0f);
     if (alphaMulLocation >= 0) glUniform1f(alphaMulLocation, 1.0f);
     if (fireLightColorLocation >= 0) glUniform3f(fireLightColorLocation, 1.0f, 0.6f, 0.15f);
     // smaller default intensity so the fire light is less overwhelming
     if (fireLightIntensityLocation >= 0) glUniform1f(fireLightIntensityLocation, 2.5f);
 
+    // compute smoke region in world space based on fireplace model
+    // account for model matrix used: final world = scale * (pos + localCoord)
+    glm::vec3 regionMin = (fireplacePosition + fireplaceOffset) * fireplaceScale;
+    glm::vec3 regionMax = regionMin + glm::vec3(fireplaceWidth * fireplaceScale, fireplaceHeight * fireplaceScale, fireplaceDepth * fireplaceScale);
+    if (smokeRegionMinLoc >= 0) glUniform3f(smokeRegionMinLoc, regionMin.x, regionMin.y, regionMin.z);
+    if (smokeRegionMaxLoc >= 0) glUniform3f(smokeRegionMaxLoc, regionMax.x, regionMax.y, regionMax.z);
+    if (smokeRangeLoc >= 0) glUniform1f(smokeRangeLoc, 0.8f * fireplaceHeight * fireplaceScale);
+    if (smokeColorLoc >= 0) glUniform3f(smokeColorLoc, 0.18f, 0.18f, 0.18f);
+    if (smokeIntensityLoc >= 0) glUniform1f(smokeIntensityLoc, 1.0f);
+
     glUniform1i(glGetUniformLocation(ProgramId, "myTexture"), 0);
+
+    // --- Initialize smoke particle system ---
+    ParticleProgram = LoadShaders("particle.vert", "particle.frag");
+    if (ParticleProgram == 0) {
+        printf("Warning: particle shaders failed to load — using fallback drawing.\n");
+        smokeUseFallbackShader = true;
+    }
+
+    // create VAO/VBO for particles: layout = vec3 pos; float life; float size
+    glGenVertexArrays(1, &VaoIdSmoke);
+    glBindVertexArray(VaoIdSmoke);
+    glGenBuffers(1, &VboIdSmoke);
+    glBindBuffer(GL_ARRAY_BUFFER, VboIdSmoke);
+    // 5 floats per particle (vec3 + life + size)
+    glBufferData(GL_ARRAY_BUFFER, maxSmokeParticles * 5 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
+    // position (location = 0)
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)0);
+    // life (location = 1)
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
+    // size (location = 2)
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)(4 * sizeof(float)));
+
+    // initialize particle pool
+    smokeParticles.resize(maxSmokeParticles);
+    for (int i = 0; i < maxSmokeParticles; ++i) {
+        smokeParticles[i].life = 0.0f; // dead
+        smokeParticles[i].pos = glm::vec3(0.0f);
+        smokeParticles[i].vel = glm::vec3(0.0f);
+        smokeParticles[i].size = 0.0f;
+    }
+
+    lastFrameTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
 }
 
 void RenderFunction(void)
@@ -768,6 +838,113 @@ void RenderFunction(void)
         if (colorMulLocation >= 0) glUniform1f(colorMulLocation, 1.0f);
         if (alphaMulLocation >= 0) glUniform1f(alphaMulLocation, 1.0f);
         glDisable(GL_BLEND);
+    }
+
+    // --- Update and render smoke particles ---
+    {
+        float curTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        float dt = curTime - lastFrameTime;
+        if (dt <= 0.0f) dt = 0.0f;
+        if (dt > 0.1f) dt = 0.1f; // clamp
+        lastFrameTime = curTime;
+
+        // random generators
+        static std::default_random_engine rng(123456);
+        static std::uniform_real_distribution<float> dxy(-0.03f, 0.03f);
+        static std::uniform_real_distribution<float> dvy(0.6f, 1.3f);
+        static std::uniform_real_distribution<float> dsize(3.0f, 6.0f);
+
+        // emission point (same as fire light origin)
+        const float fireInset = 0.28f;
+        glm::vec3 emitCenter = fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.18f, fireplaceDepth - fireInset) + fireOffset;
+
+        int toSpawn = int(smokeSpawnRate * dt + 0.5f);
+        for (int s = 0; s < toSpawn; ++s) {
+            // find a dead particle
+            for (int i = 0; i < maxSmokeParticles; ++i) {
+                if (smokeParticles[i].life <= 0.0f) {
+                    smokeParticles[i].pos = emitCenter + glm::vec3(dxy(rng), 0.0f, dxy(rng));
+                    smokeParticles[i].vel = glm::vec3(dxy(rng) * 0.7f, dvy(rng), dxy(rng) * 0.7f);
+                    smokeParticles[i].life = 1.0f;
+                    smokeParticles[i].size = dsize(rng);
+                    break;
+                }
+            }
+        }
+
+        // physical constraints: smoke should not escape above a fraction of the fireplace height
+        float maxSmokeY = fireplacePosition.y + fireplaceHeight * fireplaceScale * smokeCeilingFactor;
+
+        // update particles and prepare GPU buffer
+        std::vector<float> buf;
+        buf.resize(maxSmokeParticles * 5);
+        for (int i = 0; i < maxSmokeParticles; ++i) {
+            SmokeParticle &p = smokeParticles[i];
+            if (p.life > 0.0f) {
+                // simple motion
+                p.pos += p.vel * dt;
+                // buoyancy
+                p.vel.y += 1.2f * dt;
+                // damping
+                p.vel *= 0.99f;
+                // fade (slower so particles remain visible longer)
+                p.life -= dt * 0.12f;
+                if (p.pos.y >= maxSmokeY) { p.pos.y = maxSmokeY; p.vel = glm::vec3(0.0f); }
+                if (p.life < 0.0f) p.life = 0.0f;
+            }
+            int idx = i * 5;
+            buf[idx + 0] = p.pos.x;
+            buf[idx + 1] = p.pos.y;
+            buf[idx + 2] = p.pos.z;
+            buf[idx + 3] = p.life;
+            buf[idx + 4] = p.size;
+        }
+
+        // stream to GPU
+        glBindBuffer(GL_ARRAY_BUFFER, VboIdSmoke);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buf.size() * sizeof(float)), buf.data());
+
+        // draw points as smoke (use particle shader)
+        if (!smokeUseFallbackShader) {
+            glUseProgram(ParticleProgram);
+            GLint locView = glGetUniformLocation(ParticleProgram, "view");
+            GLint locProj = glGetUniformLocation(ParticleProgram, "projection");
+            if (locView >= 0) glUniformMatrix4fv(locView, 1, GL_FALSE, &view[0][0]);
+            if (locProj >= 0) glUniformMatrix4fv(locProj, 1, GL_FALSE, &projection[0][0]);
+            glEnable(GL_PROGRAM_POINT_SIZE);
+        } else {
+            // fallback: use main program and global point size
+            glUseProgram(ProgramId);
+            glDisable(GL_PROGRAM_POINT_SIZE);
+            glPointSize(4.0f);
+        }
+
+        glBindVertexArray(VaoIdSmoke);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        // Debug: draw smoke on top so it's visible through geometry
+        // ensure depth test is enabled so particles are occluded by scene geometry
+        GLboolean wasDepth = glIsEnabled(GL_DEPTH_TEST);
+        if (!wasDepth) glEnable(GL_DEPTH_TEST);
+        // do not write to depth buffer so blended particles don't occlude other objects
+        glDepthMask(GL_FALSE);
+        glDrawArrays(GL_POINTS, 0, (GLsizei)maxSmokeParticles);
+        glDepthMask(GL_TRUE);
+        if (!wasDepth) glDisable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+        // restore main program
+        glUseProgram(ProgramId);
+    }
+    // debug: print active particles occasionally
+    {
+        static float lastDebug = 0.0f;
+        float now = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
+        if (now - lastDebug > 2.0f) {
+            int active = 0;
+            for (int i = 0; i < maxSmokeParticles; ++i) if (smokeParticles[i].life > 0.01f) ++active;
+            printf("Smoke active: %d\n", active);
+            lastDebug = now;
+        }
     }
 
     
