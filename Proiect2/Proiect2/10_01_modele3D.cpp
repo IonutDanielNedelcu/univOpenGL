@@ -151,6 +151,21 @@ std::vector<glm::vec3> fireplaceTopVertices;
 std::vector<glm::vec2> fireplaceTopUvs;
 std::vector<glm::vec3> fireplaceTopNormals;
 
+// --- VARIABILE PENTRU LEMNE (logs) ---
+GLuint VaoIdLogs = 0, VboIdLogs = 0; 
+int nrVerticesLogs = 0;
+std::vector<glm::vec3> logVertices;
+std::vector<glm::vec3> logNormals;
+std::vector<glm::vec2> logUvs;
+GLuint TextureLogs = 0;
+
+struct LogInstance {
+    glm::vec3 pos; // local to fireplace model
+    glm::vec3 size; // dimensions (X = length, Y = height, Z = thickness)
+    float rotY;     // rotation around Y in radians
+};
+std::vector<LogInstance> logs;
+
 // Fire (deformed cone)
 GLuint VaoIdFire, VboIdFire;
 int nrVerticesFire;
@@ -375,27 +390,50 @@ void CreateFireplaceTop(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& n
     glm::vec3 g = c + glm::vec3(0.0f, topHeight, 0.0f);
     glm::vec3 h = d + glm::vec3(0.0f, topHeight, 0.0f);
 
-    auto add = [&](glm::vec3 p0, glm::vec3 p1, glm::vec3 p2, glm::vec3 p3, glm::vec3 normal){
-        verts.push_back(p0); verts.push_back(p1); verts.push_back(p2);
-        verts.push_back(p0); verts.push_back(p2); verts.push_back(p3);
-        for(int i=0;i<6;++i) norms.push_back(normal);
-        uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
-        uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
-    };
-
     // bottom
-    add(a,b,c,d, glm::vec3(0.0f,-1.0f,0.0f));
+    verts.push_back(a); verts.push_back(b); verts.push_back(c);
+    verts.push_back(a); verts.push_back(c); verts.push_back(d);
+    for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,-1.0f,0.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
+
     // top
-    add(e,f,g,h, glm::vec3(0.0f,1.0f,0.0f));
+    verts.push_back(e); verts.push_back(f); verts.push_back(g);
+    verts.push_back(e); verts.push_back(g); verts.push_back(h);
+    for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,1.0f,0.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
+
     // front
-    add(b,a,e,f, glm::vec3(0.0f,0.0f,-1.0f));
+    verts.push_back(b); verts.push_back(a); verts.push_back(e);
+    verts.push_back(b); verts.push_back(e); verts.push_back(f);
+    for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,0.0f,-1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
+
     // back
-    add(d,c,g,h, glm::vec3(0.0f,0.0f,1.0f));
+    verts.push_back(d); verts.push_back(c); verts.push_back(g);
+    verts.push_back(d); verts.push_back(g); verts.push_back(h);
+    for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,0.0f,1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
+
     // left
-    add(a,d,h,e, glm::vec3(-1.0f,0.0f,0.0f));
+    verts.push_back(a); verts.push_back(d); verts.push_back(h);
+    verts.push_back(a); verts.push_back(h); verts.push_back(e);
+    for(int i=0;i<6;++i) norms.push_back(glm::vec3(-1.0f,0.0f,0.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
+
     // right
-    add(c,b,f,g, glm::vec3(1.0f,0.0f,0.0f));
+    verts.push_back(c); verts.push_back(b); verts.push_back(f);
+    verts.push_back(c); verts.push_back(f); verts.push_back(g);
+    for(int i=0;i<6;++i) norms.push_back(glm::vec3(1.0f,0.0f,0.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
+    uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
 }
+
+// (Removed CreateUnitBox) Logs are generated inline in Initialize now.
 
 // Create a procedural cone to be used for the fire (triangulated)
 void CreateProceduralFireCone(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
@@ -523,6 +561,12 @@ void UploadMeshToGPU(GLuint& vao, GLuint& vbo,
     }
 }
 
+// Simple random float helper (avoids lambda usage)
+static float rndf(std::default_random_engine &rng, float a, float b)
+{
+    return a + (b - a) * (float(rng()) / float(rng.max()));
+}
+
 void Cleanup(void) {
     glDeleteProgram(ProgramId);
     glDeleteVertexArrays(1, &VaoIdRoom); glDeleteBuffers(1, &VboIdRoom);
@@ -589,6 +633,76 @@ void Initialize(void)
     // store base positions for deformation
     fireBasePositions = fireVertices;
     UploadMeshToGPU(VaoIdFire, VboIdFire, fireVertices, fireNormals, fireUvs);
+
+    // --- GENERARE LEMNE PENTRU FOC ---
+    // Generate a unit box mesh inline (centered at origin, size 1) and upload once; instances will be positioned using transforms
+    logVertices.clear(); logNormals.clear(); logUvs.clear();
+    glm::vec3 p000(-0.5f, -0.5f, -0.5f);
+    glm::vec3 p100(0.5f, -0.5f, -0.5f);
+    glm::vec3 p110(0.5f, 0.5f, -0.5f);
+    glm::vec3 p010(-0.5f, 0.5f, -0.5f);
+    glm::vec3 p001(-0.5f, -0.5f, 0.5f);
+    glm::vec3 p101(0.5f, -0.5f, 0.5f);
+    glm::vec3 p111(0.5f, 0.5f, 0.5f);
+    glm::vec3 p011(-0.5f, 0.5f, 0.5f);
+
+    // front (+Z)
+    logVertices.push_back(p101); logVertices.push_back(p001); logVertices.push_back(p011);
+    logVertices.push_back(p101); logVertices.push_back(p011); logVertices.push_back(p111);
+    for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,0.0f,1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
+
+    // back (-Z)
+    logVertices.push_back(p000); logVertices.push_back(p100); logVertices.push_back(p110);
+    logVertices.push_back(p000); logVertices.push_back(p110); logVertices.push_back(p010);
+    for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,0.0f,-1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
+
+    // left (-X)
+    logVertices.push_back(p001); logVertices.push_back(p000); logVertices.push_back(p010);
+    logVertices.push_back(p001); logVertices.push_back(p010); logVertices.push_back(p011);
+    for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(-1.0f,0.0f,0.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
+
+    // right (+X)
+    logVertices.push_back(p100); logVertices.push_back(p101); logVertices.push_back(p111);
+    logVertices.push_back(p100); logVertices.push_back(p111); logVertices.push_back(p110);
+    for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(1.0f,0.0f,0.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
+
+    // top (+Y)
+    logVertices.push_back(p011); logVertices.push_back(p010); logVertices.push_back(p110);
+    logVertices.push_back(p011); logVertices.push_back(p110); logVertices.push_back(p111);
+    for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,1.0f,0.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
+
+    // bottom (-Y)
+    logVertices.push_back(p000); logVertices.push_back(p001); logVertices.push_back(p101);
+    logVertices.push_back(p000); logVertices.push_back(p101); logVertices.push_back(p100);
+    for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,-1.0f,0.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
+    logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
+
+    nrVerticesLogs = logVertices.size();
+    UploadMeshToGPU(VaoIdLogs, VboIdLogs, logVertices, logNormals, logUvs);
+    // use wood texture (fireplace top) as texture for logs
+    TextureLogs = TextureFireplaceTop;
+
+    // define a few log instances (local coordinates relative to fireplace model)
+    logs.clear();
+    // place logs near the fire inset used for the flame animation
+    const float fireInset = 0.28f;
+    float zBase = fireplaceDepth - 0.32f; // slightly in front of inner back
+    float baseY = 0.03f; // lift so they sit on fireplace floor
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f - 0.12f, baseY + 0.04f, zBase), glm::vec3(0.60f, 0.08f, 0.12f), -0.25f });
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f + 0.08f, baseY + 0.02f, zBase + 0.02f), glm::vec3(0.50f, 0.07f, 0.10f), 0.15f });
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f - 0.05f, baseY + 0.10f, zBase - 0.05f), glm::vec3(0.40f, 0.06f, 0.10f), 0.60f });
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f + 0.20f, baseY + 0.05f, zBase - 0.02f), glm::vec3(0.45f, 0.07f, 0.11f), -0.40f });
 
     ProgramId = LoadShaders("10_01_Shader.vert", "10_01_Shader.frag");
     glUseProgram(ProgramId);
@@ -789,6 +903,22 @@ void RenderFunction(void)
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesFireplaceTop);
     }
 
+    // --- DESENARE LEMNE (logs) ---
+    if (VaoIdLogs != 0 && nrVerticesLogs > 0 && !logs.empty()) {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, TextureLogs);
+        glBindVertexArray(VaoIdLogs);
+        for (size_t li = 0; li < logs.size(); ++li) {
+            const LogInstance &L = logs[li];
+            glm::mat4 modelLog = glm::mat4(1.0f);
+            modelLog = glm::translate(modelLog, fireplacePosition + fireplaceOffset + L.pos);
+            modelLog = glm::rotate(modelLog, L.rotY, glm::vec3(0.0f, 1.0f, 0.0f));
+            modelLog = glm::scale(modelLog, glm::vec3(L.size.x * fireplaceScale, L.size.y * fireplaceScale, L.size.z * fireplaceScale));
+            glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelLog[0][0]);
+            glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesLogs);
+        }
+    }
+
     // Now draw the fire last so it's visible inside the fireplace.
     if (VaoIdFire != 0 && nrVerticesFire > 0) {
         // model matrix already computed during update; recompute to be safe
@@ -848,11 +978,8 @@ void RenderFunction(void)
         if (dt > 0.1f) dt = 0.1f; // clamp
         lastFrameTime = curTime;
 
-        // random generators
+        // random generator
         static std::default_random_engine rng(123456);
-        static std::uniform_real_distribution<float> dxy(-0.03f, 0.03f);
-        static std::uniform_real_distribution<float> dvy(0.6f, 1.3f);
-        static std::uniform_real_distribution<float> dsize(3.0f, 6.0f);
 
         // emission point (same as fire light origin)
         const float fireInset = 0.28f;
@@ -863,10 +990,10 @@ void RenderFunction(void)
             // find a dead particle
             for (int i = 0; i < maxSmokeParticles; ++i) {
                 if (smokeParticles[i].life <= 0.0f) {
-                    smokeParticles[i].pos = emitCenter + glm::vec3(dxy(rng), 0.0f, dxy(rng));
-                    smokeParticles[i].vel = glm::vec3(dxy(rng) * 0.7f, dvy(rng), dxy(rng) * 0.7f);
+                    smokeParticles[i].pos = emitCenter + glm::vec3(rndf(rng, -0.03f, 0.03f), 0.0f, rndf(rng, -0.03f, 0.03f));
+                    smokeParticles[i].vel = glm::vec3(rndf(rng, -0.03f, 0.03f) * 0.7f, rndf(rng, 0.6f, 1.3f), rndf(rng, -0.03f, 0.03f) * 0.7f);
                     smokeParticles[i].life = 1.0f;
-                    smokeParticles[i].size = dsize(rng);
+                    smokeParticles[i].size = rndf(rng, 3.0f, 6.0f);
                     break;
                 }
             }
@@ -935,19 +1062,6 @@ void RenderFunction(void)
         // restore main program
         glUseProgram(ProgramId);
     }
-    // debug: print active particles occasionally
-    {
-        static float lastDebug = 0.0f;
-        float now = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-        if (now - lastDebug > 2.0f) {
-            int active = 0;
-            for (int i = 0; i < maxSmokeParticles; ++i) if (smokeParticles[i].life > 0.01f) ++active;
-            printf("Smoke active: %d\n", active);
-            lastDebug = now;
-        }
-    }
-
-    
 
     glutSwapBuffers();
     glFlush();
