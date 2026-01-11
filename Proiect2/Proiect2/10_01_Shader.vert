@@ -9,7 +9,6 @@ layout(location=2) in vec2 in_TexCoord; // Aici intra coordonatele UV din OBJ
 out vec3 FragPos;
 out vec3 Normal;
 out vec3 inViewPos;
-out vec3 inLightPos;
 out vec4 ex_Color;
 out vec2 tex_Coord; // Aici le trimitem mai departe
 
@@ -26,7 +25,6 @@ void main(void)
     Normal = mat3(myMatrix) * in_Normal;
     
     inViewPos = viewPos;
-    inLightPos = vec3(0.0, 20.0, 10.0); // Pozitia luminii (poti sa o muti)
     ex_Color = vec4(1.0, 1.0, 1.0, 1.0); // Culoare default alba
 
     // Transmiterea coordonatelor de texturare
