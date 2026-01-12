@@ -1,12 +1,3 @@
-//
-// ================================================
-// | Grafica pe calculator                        |
-// ================================================
-// | Proiect 2 - Grafica 3D                       |
-// ================================================
-//
-
-// Biblioteci
 #include <windows.h>  
 #include <stdio.h>
 #include <stdlib.h> 
@@ -18,9 +9,7 @@
 #include <GL/glew.h> 
 #include <GL/freeglut.h> 
 #include "SOIL.h"
-
 #include "loadShaders.h"
-
 #include "glm/glm.hpp"  
 #include "glm/gtc/matrix_transform.hpp"
 #include "glm/gtx/transform.hpp"
@@ -35,36 +24,111 @@ GLint fireLightPosLocation = -1, fireLightColorLocation = -1, fireLightIntensity
 // base fire intensity (used for flicker modulation)
 float fireBaseIntensity = 2.5f;
 
+// General
+float PI = 3.141592f;
+glm::mat4 myMatrix, view, projection;
+float refX = 0.0f, refY = 0.0f, refZ = 0.0f;
+// Pozitia observatorului
+float obsX, obsY, obsZ;
+// Variabile pentru controlul camerei
+float alpha = 0.2f;
+float beta = -0.5f;
+float dist = 6.0f;
+float minAlpha = 0.01f;
+float maxAlpha = 1.5f;
+float incrAlpha = 0.05f;
+float incrBeta = 0.05f;
+// Proiectie
+float width = 1200, height = 900, dNear = 0.1f, fov = 60.f * PI / 180;
+
+
 // 1. Variabile SUFRAGERIE
-GLuint VaoIdRoom, VboIdRoom, TextureRoom;
+GLuint VaoRoom, VboRoom, TextureRoom;
 int nrVerticesRoom;
-std::vector<glm::vec3> roomVertices;
+std::vector<glm::vec3> roomVertices, roomNormals;
 std::vector<glm::vec2> roomUvs;
-std::vector<glm::vec3> roomNormals;
 
-// 2. Variabile BRAD (Generat manual)
-GLuint VaoIdTree, VboIdTree, TextureTree;
+
+
+// 2. Variabile BRAD 
+GLuint VaoTree, VboTree, TextureTree;
 int nrVerticesTree;
-std::vector<glm::vec3> treeVertices;
+std::vector<glm::vec3> treeVertices, treeNormals;
 std::vector<glm::vec2> treeUvs;
-std::vector<glm::vec3> treeNormals;
+glm::vec3 treePosition(2.9f, 3.0f, -0.5f);
+float treeScale = 0.5f;
+GLint allowBlackLocation = -1;
 
-// --- INSTALATIE (fir + beculete) ---
-GLuint VaoIdWire = 0, VboIdWire = 0;
-int nrWirePoints = 0;
+// Generare brad ca un con
+void CreateTree(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
+{
+    // Resetam vectorii de iesire
+    verts.clear();
+    norms.clear();
+    uvs.clear();
 
-GLuint VaoIdBulb = 0, VboIdBulb = 0;
-int nrVerticesBulb = 0;
+    const float height =2.5f;   // inaltimea bradului
+    const float radius = 1.0f;   // raza bazei
+    const int segments = 32;     // cate segmente in jurul bazei
+
+    glm::vec3 top(0.0f, height, 0.0f);
+    glm::vec3 bottomCenter(0.0f, 0.0f, 0.0f);
+
+    // Pentru fiecare segment generam doua triunghiuri: unul pentru fata laterala
+    // si unul pentru baza (pentru a acoperi partea inferioara).
+    for (int i = 0; i < segments; ++i) {
+        float a1 = (float)i / segments * 2.0f * PI;
+        float a2 = (float)(i + 1) / segments * 2.0f * PI;
+
+        // Pozitiile punctelor de pe circumferinta bazei
+        glm::vec3 p1(radius * cos(a1), 0.0f, radius * sin(a1));
+        glm::vec3 p2(radius * cos(a2), 0.0f, radius * sin(a2));
+
+        // 1) Triunghi lateral: (top, p1, p2)
+        verts.push_back(top);
+        verts.push_back(p1);
+        verts.push_back(p2);
+
+        // Normala fetei laterale (aproximata folosind produsul vectorial)
+        glm::vec3 nSide = glm::normalize(glm::cross(p1 - top, p2 - top));
+        norms.push_back(nSide);
+        norms.push_back(nSide);
+        norms.push_back(nSide);
+
+        // UV-uri simple: varful la centru sus, cele doua varfuri la baza
+        uvs.push_back(glm::vec2(0.5f, 1.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+        uvs.push_back(glm::vec2(1.0f, 0.0f));
+
+        // 2) Triunghi baza: (bottomCenter, p2, p1)
+        verts.push_back(bottomCenter);
+        verts.push_back(p2);
+        verts.push_back(p1);
+
+        // Normaala bazei -- orientata in jos
+        glm::vec3 nDown(0.0f, -1.0f, 0.0f);
+        norms.push_back(nDown);
+        norms.push_back(nDown);
+        norms.push_back(nDown);
+
+        // UV-uri pentru baza (placeholder)
+        uvs.push_back(glm::vec2(0.5f, 0.5f));
+        uvs.push_back(glm::vec2(1.0f, 0.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+    }
+}
+
+
+// 3. Variabile INSTALATIE 
+GLuint VaoWire = 0, VboWire = 0, VaoBulb = 0, VboBulb = 0;
+int nrWirePoints = 0, nrVerticesBulb = 0, bulbCount = 0;
 std::vector<glm::vec3> bulbVerts;
 std::vector<glm::vec3> bulbNormals;
 std::vector<glm::vec2> bulbUvs;
-
-std::vector<glm::vec3> bulbLocalPositions; // positions on cone (local model space)
+std::vector<glm::vec3> bulbLocalPositions; // Pozitiile beculetelor
 std::vector<glm::vec3> bulbColors;
 std::vector<float> bulbIntensities;
-int bulbCount = 0;
-
-// shader uniform locations for bulbs
+// Locatiile uniformelor din shader pentru beculete
 GLint bulbCountLocation = -1;
 GLint bulbPosLocation = -1;
 GLint bulbColorLocation = -1;
@@ -74,154 +138,78 @@ GLuint WhiteTexture = 0;
 GLuint BlackTexture = 0;
 GLint useSolidColorLocation = -1;
 GLint solidColorLocation = -1;
-
-// SETARI INSTALATIE 
-// 1 = Static, 2 = Palpait, 3 = Pe sarite, 4 = Oprit
-int lightMode = 1;
-
-// SETARI GENERALE 
-float PI = 3.141592f;
-glm::mat4 myMatrix, view, projection;
-
-// TINTA Camerei (Centrul modelului)
-float refX = 0.0f, refY = 0.0f, refZ = 0.0f;
-// Pozitia OBSERVATORULUI
-float obsX, obsY, obsZ;
-
-// SETARI CAMERA 
-float alpha = 0.2f;
-float beta = -0.5f;
-float dist = 6.0f;
-
-float minAlpha = 0.01f;
-float maxAlpha = 1.5f;
-float incrAlpha = 0.05f;
-float incrBeta = 0.05f;
-
-// Proiectie
-float width = 1200, height = 900, dNear = 0.1f, fov = 60.f * PI / 180;
-
-// SETARI POZITIE BRAD 
-glm::vec3 treePosition(2.9f, 3.0f, -0.5f);
-// scalarea bradului
-float treeScale = 0.5f;
-
-// allow black texture uniform location
-GLint allowBlackLocation = -1;
+int lightMode = 1; 
 
 
-// --- FUNCTIE GENERARE CON (BRAD) ---
-// Aceasta functie inlocuieste incarcarea din fisier .obj
-void CreateProceduralCone(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
-{
-    verts.clear(); norms.clear(); uvs.clear();
 
-    float height = 2.5f;    // Inaltime brad
-    float radius = 1.0f;    // Latime baza
-    int segments = 32;      // Rotunjime
-
-    glm::vec3 topPoint(0.0f, height, 0.0f);
-    glm::vec3 centerBottom(0.0f, 0.0f, 0.0f);
-
-    for (int i = 0; i < segments; i++) {
-        float angle1 = (float)i / segments * 2.0f * PI;
-        float angle2 = (float)(i + 1) / segments * 2.0f * PI;
-
-        float x1 = cos(angle1) * radius;
-        float z1 = sin(angle1) * radius;
-        float x2 = cos(angle2) * radius;
-        float z2 = sin(angle2) * radius;
-
-        glm::vec3 p1(x1, 0.0f, z1);
-        glm::vec3 p2(x2, 0.0f, z2);
-
-        // Fata laterala
-        verts.push_back(topPoint);
-        verts.push_back(p1);
-        verts.push_back(p2);
-
-        // Calcul normala
-        glm::vec3 n = glm::normalize(glm::cross(p1 - topPoint, p2 - topPoint));
-        norms.push_back(n); norms.push_back(n); norms.push_back(n);
-
-        // Texturare simpla
-        uvs.push_back(glm::vec2(0.5f, 1.0f));
-        uvs.push_back(glm::vec2(0.0f, 0.0f));
-        uvs.push_back(glm::vec2(1.0f, 0.0f));
-
-        // Baza (ca sa nu se vada gol pe dedesubt)
-        verts.push_back(centerBottom);
-        verts.push_back(p2);
-        verts.push_back(p1);
-
-        norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
-        norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
-        norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
-
-        uvs.push_back(glm::vec2(0.5f, 0.5f));
-        uvs.push_back(glm::vec2(1.0f, 0.0f));
-        uvs.push_back(glm::vec2(0.0f, 0.0f));
-    }
-}
-
-
-// 3. Variabile STEA (Star)
-GLuint VaoIdStar, VboIdStar;
+// 4. Variabile STEA
+GLuint VaoStar = 0, VboStar = 0;
 int nrVerticesStar;
 std::vector<glm::vec3> starVertices;
 std::vector<glm::vec3> starNormals;
 std::vector<glm::vec2> starUvs;
 
-// Functie pentru generarea unei stele 3D
+// Generare stea
 void CreateProceduralStar(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
 {
-    verts.clear(); norms.clear(); uvs.clear();
+    // Resetam vectorii de iesire
+    verts.clear();
+    norms.clear();
+    uvs.clear();
 
-    float outerRadius = 0.25f; // Raza varfurilor
-    float innerRadius = 0.10f; // Raza interiorului
-    float thickness = 0.05f;   // Grosimea stelei (cat de "grasa" e 3D)
-    int numPoints = 5;         // Stea in 5 colturi
+    const float outerRadius = 0.25f; // distanta de la centru la varfurile exterioare
+    const float innerRadius = 0.10f; // distanta de la centru la punctele interioare dintre varfuri
+    const float thickness = 0.05f;   // grosimea stelei pe axa Z
+    const int numPoints = 5;         // numarul de varfuri
 
-    // Centrul fetei si spatelui
+    // Cele doua centre: unul pentru fata (+Z) si unul pentru spate (-Z)
+    // pentru a forma triunghiuri piramidale mici pe fiecare parte
     glm::vec3 centerFront(0.0f, 0.0f, thickness);
     glm::vec3 centerBack(0.0f, 0.0f, -thickness);
 
-    for (int i = 0; i < numPoints * 2; ++i) {
-        // Calculam unghiurile curent si urmator
+    // Vom parcurge numPoints*2 pozitii pe cerc: varf si interior
+    for (int i = 0; i < numPoints * 2; i++) {
+        // Calculam unghiurile pentru punctul curent si urmatorul
+        // Normalizam indexul in [0,1] si inmultim cu 2*PI
         float angle1 = (float)i / (numPoints * 2) * 2.0f * PI;
         float angle2 = (float)(i + 1) / (numPoints * 2) * 2.0f * PI;
 
-        // Raza alterneaza: Varf -> Interior -> Varf -> Interior
+        // Alternam raza: daca indexul e par => varf exterior, altfel punct interior
         float r1 = (i % 2 == 0) ? outerRadius : innerRadius;
         float r2 = ((i + 1) % 2 == 0) ? outerRadius : innerRadius;
 
-        glm::vec3 p1(r1 * cos(angle1 + PI / 2), r1 * sin(angle1 + PI / 2), 0.0f);
-        glm::vec3 p2(r2 * cos(angle2 + PI / 2), r2 * sin(angle2 + PI / 2), 0.0f);
+        // Convertim polare in carteziene
+        glm::vec3 p1(r1 * cosf(angle1 + PI / 2.0f), r1 * sinf(angle1 + PI / 2.0f), 0.0f);
+        glm::vec3 p2(r2 * cosf(angle2 + PI / 2.0f), r2 * sinf(angle2 + PI / 2.0f), 0.0f);
 
-        // --- FATA (Front face) ---
-        // Triunghi: CenterFront -> p1 -> p2 (deplasate spre Z+)
-        glm::vec3 pf1 = p1; pf1.z = thickness;
-        glm::vec3 pf2 = p2; pf2.z = thickness; // (la baza, de fapt le unim cu centrul bombat)
-        // Simplificare: Stea piramidala pe ambele parti
-        // Unim p1(z=0) si p2(z=0) cu CenterFront
+        // Fata stelei +Z
+        verts.push_back(centerFront);
+        verts.push_back(p1);
+        verts.push_back(p2);
 
-        // Triunghi FATA
-        verts.push_back(centerFront); verts.push_back(p1); verts.push_back(p2);
-        // Normala aproximativa (fata)
+        // Normala triunghiului de pe fata
         glm::vec3 nF = glm::normalize(glm::cross(p1 - centerFront, p2 - centerFront));
         norms.push_back(nF); norms.push_back(nF); norms.push_back(nF);
 
-        // Triunghi SPATE (inversam ordinea pentru cull face)
-        verts.push_back(centerBack); verts.push_back(p2); verts.push_back(p1);
-        // Normala aproximativa (spate)
+        // UV-uri simple (placeholder)
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+
+        // Spatele stelei -Z
+        verts.push_back(centerBack);
+        verts.push_back(p2);
+        verts.push_back(p1);
+
         glm::vec3 nB = glm::normalize(glm::cross(p2 - centerBack, p1 - centerBack));
         norms.push_back(nB); norms.push_back(nB); norms.push_back(nB);
 
-        // UVs dummy (nu folosim textura, ci culoare solida)
-        uvs.push_back(glm::vec2(0.5f, 0.5f)); uvs.push_back(glm::vec2(1, 0)); uvs.push_back(glm::vec2(0, 0));
-        uvs.push_back(glm::vec2(0.5f, 0.5f)); uvs.push_back(glm::vec2(1, 0)); uvs.push_back(glm::vec2(0, 0));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
+        uvs.push_back(glm::vec2(0.0f, 0.0f));
     }
 }
+
 
 
 // VARIABILE SEMINEU
@@ -547,146 +535,189 @@ void CreateFirecone(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms
     }
 }
 
-// Create a unit sphere (triangle list) - stacks x slices
-void CreateUnitSphereTriangles(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs, float radius = 1.0f, int stacks = 12, int slices = 24)
+// Creare sfera pentru globuri
+void CreateSphere(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs, float radius = 1.0f, int stacks = 12, int slices = 24)
 {
-    verts.clear(); norms.clear(); uvs.clear();
-    for (int i = 0; i < stacks; ++i) {
-        float v0 = (float)i / stacks;
-        float v1 = (float)(i + 1) / stacks;
-        float phi0 = (v0 - 0.5f) * PI; // -pi/2 .. pi/2
+    // Resetam vectorii de iesire
+    verts.clear();
+    norms.clear();
+    uvs.clear();
+
+    // Construim sfera ca o retea de 'stacks' (latitudini) si 'slices' (longitudini)
+    for (int stack = 0; stack < stacks; ++stack) {
+        // v0 si v1 sunt parametri in [0,1] pentru latitudine: 0 = jos, 1 = sus
+        float v0 = (float)stack / stacks;
+        float v1 = (float)(stack + 1) / stacks;
+
+        // phi = latitudine in radiani (-pi/2 .. +pi/2)
+        float phi0 = (v0 - 0.5f) * PI;
         float phi1 = (v1 - 0.5f) * PI;
-        for (int j = 0; j < slices; ++j) {
-            float u0 = (float)j / slices;
-            float u1 = (float)(j + 1) / slices;
+
+        for (int slice = 0; slice < slices; ++slice) {
+            // u0 si u1 sunt parametri in [0,1] pentru longitudine
+            float u0 = (float)slice / slices;
+            float u1 = (float)(slice + 1) / slices;
+
+            // theta = longitudine in radiani (0 .. 2*PI)
             float theta0 = u0 * 2.0f * PI;
             float theta1 = u1 * 2.0f * PI;
 
-            glm::vec3 p00(radius * cosf(phi0) * cosf(theta0), radius * cosf(phi0) * sinf(theta0), radius * sinf(phi0));
-            glm::vec3 p10(radius * cosf(phi1) * cosf(theta0), radius * cosf(phi1) * sinf(theta0), radius * sinf(phi1));
-            glm::vec3 p11(radius * cosf(phi1) * cosf(theta1), radius * cosf(phi1) * sinf(theta1), radius * sinf(phi1));
-            glm::vec3 p01(radius * cosf(phi0) * cosf(theta1), radius * cosf(phi0) * sinf(theta1), radius * sinf(phi0));
+            // Calculam cele patru puncte ale patrulaterului pe suprafata sferei
+            glm::vec3 p00(radius * cosf(phi0) * cosf(theta0),
+                          radius * cosf(phi0) * sinf(theta0),
+                          radius * sinf(phi0));
 
-            // triangle 1
-            verts.push_back(p00); verts.push_back(p10); verts.push_back(p11);
-            // triangle 2
-            verts.push_back(p00); verts.push_back(p11); verts.push_back(p01);
+            glm::vec3 p10(radius * cosf(phi1) * cosf(theta0),
+                          radius * cosf(phi1) * sinf(theta0),
+                          radius * sinf(phi1));
 
-            // normals (approximate by position normalized)
-            for (int k = 0; k < 6; ++k) {
-                norms.push_back(glm::normalize(verts[verts.size() - 6 + k]));
-            }
-            // uvs (simple)
-            uvs.push_back(glm::vec2(u0, v0)); uvs.push_back(glm::vec2(u0, v1)); uvs.push_back(glm::vec2(u1, v1));
-            uvs.push_back(glm::vec2(u0, v0)); uvs.push_back(glm::vec2(u1, v1)); uvs.push_back(glm::vec2(u1, v0));
+            glm::vec3 p11(radius * cosf(phi1) * cosf(theta1),
+                          radius * cosf(phi1) * sinf(theta1),
+                          radius * sinf(phi1));
+
+            glm::vec3 p01(radius * cosf(phi0) * cosf(theta1),
+                          radius * cosf(phi0) * sinf(theta1),
+                          radius * sinf(phi0));
+
+            // Triunghi 1: p00, p10, p11
+            verts.push_back(p00);
+            verts.push_back(p10);
+            verts.push_back(p11);
+
+            // Triunghi 2: p00, p11, p01
+            verts.push_back(p00);
+            verts.push_back(p11);
+            verts.push_back(p01);
+
+            // Adaugam normalele 
+            norms.push_back(glm::normalize(p00));
+            norms.push_back(glm::normalize(p10));
+            norms.push_back(glm::normalize(p11));
+            norms.push_back(glm::normalize(p00));
+            norms.push_back(glm::normalize(p11));
+            norms.push_back(glm::normalize(p01));
+
+            // UV-uri simple
+            uvs.push_back(glm::vec2(u0, v0));
+            uvs.push_back(glm::vec2(u0, v1));
+            uvs.push_back(glm::vec2(u1, v1));
+            uvs.push_back(glm::vec2(u0, v0));
+            uvs.push_back(glm::vec2(u1, v1));
+            uvs.push_back(glm::vec2(u1, v0));
         }
     }
 }
 
-// Generate spiral points on a cone (DISTANTA EGALA + ROTIRE SPRE SPATE)
-void GenerateSpiralOnCone(std::vector<glm::vec3>& outPoints, int totalBulbs, float height, float baseRadius, int turns)
+// Genereaza spirala pentru instalatie
+void GenerateSpiralOnTree(std::vector<glm::vec3>& outPoints, int totalBulbs, float height, float baseRadius, int turns)
 {
     outPoints.clear();
-    outPoints.reserve(totalBulbs);
 
-    // --- MODIFICARE AICI: ROTIRE ---
-    // Adaugam PI (3.14) ca sa rotim startul cu 180 de grade (sa fie in spate)
-    float startOffset = 3.14159f;
-    // -----------------------------
+    // Configurare parametri spirala
+    float maxHeightPercent = 0.95f;     // oprim la 95% din inaltime
+    float startAngle = PI;              // unghi de start
+    int resolution = 3000;              // generam 3000 de puncte pentru fir
 
-    int samples = 2000;
-    float totalWireLength = 0.0f;
-    std::vector<float> distAtStep;
-    distAtStep.push_back(0.0f);
+    // Liste temporare pentru puncte si distante
+    std::vector<glm::vec3> spiralPoints;
+    std::vector<float> spiralDistances;
 
-    // Functie helper locala pentru pozitie
-    auto getPos = [&](float t) {
-        float y = t * height;
-        float radius = baseRadius * (1.0f - t);
-        // Adaugam startOffset la unghi
-        float angle = turns * 2.0f * PI * t + startOffset;
-        return glm::vec3(cosf(angle) * radius, y, sinf(angle) * radius);
-        };
+    // Generam firul complet, pas cu pas
+    float totalLength = 0.0f;           // lungime cumulata
+    glm::vec3 prevPoint;                // punctul anterior
 
-    glm::vec3 prevP = getPos(0.0f);
+    // Calculam primul punct
+    {
+        float r = baseRadius;
+        float y = 0.0f;
+        float a = startAngle;
+        prevPoint = glm::vec3(cos(a) * r, y, sin(a) * r);
 
-    for (int i = 1; i <= samples; ++i) {
-        float t = (float)i / samples;
-        glm::vec3 currP = getPos(t);
-        float stepDist = glm::length(currP - prevP);
-        totalWireLength += stepDist;
-        distAtStep.push_back(totalWireLength);
-        prevP = currP;
+        // Adaugam punctul initial in liste
+        spiralPoints.push_back(prevPoint);
+        spiralDistances.push_back(0.0f);
     }
 
-    float spacing = totalWireLength / (float)(totalBulbs - 1);
+    for (int i = 1; i <= resolution; i++) {
+        // t creste de la 0 la 0.95
+        float t = ((float)i / resolution) * maxHeightPercent;
 
-    for (int i = 0; i < totalBulbs; ++i) {
-        float targetDist = i * spacing;
+        // Matematica spiralei
+        float y = t * height;
+        float r = baseRadius * (1.0f - t);
+        float angle = turns * 2.0f * 3.14159f * t + startAngle;
 
-        int foundIndex = 0;
-        for (int k = 0; k < samples; ++k) {
-            if (distAtStep[k + 1] >= targetDist) {
-                foundIndex = k;
-                break;
+        glm::vec3 currPoint = glm::vec3(cos(angle) * r, y, sin(angle) * r);
+
+        // Calculam lungimea segmentului si actualizam lungimea totala
+        float segmentLen = glm::length(currPoint - prevPoint);
+        totalLength += segmentLen;
+
+        // Salvam punctul si distanta cumulata pana la el
+        spiralPoints.push_back(currPoint);
+        spiralDistances.push_back(totalLength);
+
+        prevPoint = currPoint;
+    }
+
+    // Alegem becurile la distante aproximativ egale
+    float idealStep = totalLength / (float)(totalBulbs - 1);
+
+    for (int i = 0; i < totalBulbs; i++) {
+        float targetDist = i * idealStep;
+
+        // Gasim punctul cu distanta cea mai apropiata de tinta
+        int bestIndex = 0;
+        float bestDiff = 999999.0f;
+
+        // Parcurgem distantele pentru a gasi cea mai buna potrivire
+        for (int k = 0; k < (int)spiralDistances.size(); k++) {
+            float diff = abs(spiralDistances[k] - targetDist);
+            if (diff < bestDiff) {
+                bestDiff = diff;
+                bestIndex = k;
             }
         }
 
-        float dist1 = distAtStep[foundIndex];
-        float dist2 = distAtStep[foundIndex + 1];
-        float alpha = (targetDist - dist1) / (dist2 - dist1);
-        if (dist2 - dist1 < 0.0001f) alpha = 0;
-
-        float t1 = (float)foundIndex / samples;
-        float t2 = (float)(foundIndex + 1) / samples;
-        float exactT = t1 + (t2 - t1) * alpha;
-
-        outPoints.push_back(getPos(exactT));
+        // Adaugam punctul gasit in lista finala
+        outPoints.push_back(spiralPoints[bestIndex]);
     }
 }
 
-// Upload a polylines vertex buffer (positions only)
-void UploadLineToGPU(GLuint& vao, GLuint& vbo, const std::vector<glm::vec3>& points)
+// Creare fir instalatie
+void CreateWire(GLuint& vao, GLuint& vbo, const std::vector<glm::vec3>& points)
 {
-    if (vao == 0) glGenVertexArrays(1, &vao);
+    // Verificam daca avem deja un VAO si cream unul nou daca nu
+    if (vao == 0) {
+        glGenVertexArrays(1, &vao);
+    }
     glBindVertexArray(vao);
-    if (vbo == 0) glGenBuffers(1, &vbo);
+
+    // Verificam daca avem deja un VBO si cream unul nou daca nu    
+    if (vbo == 0) {
+        glGenBuffers(1, &vbo);
+    }
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, points.size() * sizeof(glm::vec3), points.data(), GL_STATIC_DRAW);
+
+    // Trimitem punctele catre placa video
+    if (points.size() > 0) {
+        // Calculam cata memorie ocupa punctele
+        size_t bufferSize = points.size() * sizeof(glm::vec3);
+
+        glBufferData(GL_ARRAY_BUFFER, bufferSize, points.data(), GL_STATIC_DRAW);
+    }
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
+
+    // Actualizam variabila globala nrWirePoints
     nrWirePoints = (int)points.size();
-}
 
-// Create a 1x1 white texture for untextured bulbs
-GLuint CreateWhiteTexture()
-{
-    GLuint tid;
-    glGenTextures(1, &tid);
-    glBindTexture(GL_TEXTURE_2D, tid);
-    unsigned char data[4] = { 255,255,255,255 };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    return tid;
-}
-
-GLuint CreateBlackTexture()
-{
-    GLuint tid;
-    glGenTextures(1, &tid);
-    glBindTexture(GL_TEXTURE_2D, tid);
-    unsigned char data[4] = { 0,0,0,255 };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glBindTexture(GL_TEXTURE_2D, 0);
-    return tid;
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
 
 
-// ZOOM (+/-)
 void processNormalKeys(unsigned char key, int x, int y)
 {
     switch (key) {
@@ -713,7 +744,6 @@ void processNormalKeys(unsigned char key, int x, int y)
     if (key == 27) exit(0);
 }
 
-// ROTIRE (Sageti)
 void processSpecialKeys(int key, int xx, int yy)
 {
     switch (key)
@@ -748,7 +778,6 @@ GLuint LoadTexture(const char* texturePath)
 
     int width, height, channels;
 
-    // Folosim SOIL_LOAD_RGBA (incarca si transparenta)
     unsigned char* image = SOIL_load_image(texturePath, &width, &height, &channels, SOIL_LOAD_RGBA);
 
     if (image)
@@ -767,42 +796,72 @@ GLuint LoadTexture(const char* texturePath)
     return textureId;
 }
 
+// Trimitem un obiect complet (mesh) catre placa video
 void UploadMeshToGPU(GLuint& vao, GLuint& vbo,
     std::vector<glm::vec3>& verts,
     std::vector<glm::vec3>& norms,
     std::vector<glm::vec2>& texCoords)
 {
-    glGenVertexArrays(1, &vao);
+    // Generam si activam VAO si VBO
+    if (vao == 0) {
+        glGenVertexArrays(1, &vao);
+    }
     glBindVertexArray(vao);
-    glGenBuffers(1, &vbo);
+    if (vbo == 0) {
+        glGenBuffers(1, &vbo);
+    }
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
-    size_t vertsBytes = verts.size() * sizeof(glm::vec3);
-    size_t normsBytes = norms.size() * sizeof(glm::vec3);
-    size_t uvsBytes = texCoords.size() * sizeof(glm::vec2);
+    // Calculam cat spatiu ocupa tipurile de date in bytes
+    size_t vertsSize = verts.size() * sizeof(glm::vec3);
+    size_t normsSize = norms.size() * sizeof(glm::vec3);
+    size_t uvsSize = texCoords.size() * sizeof(glm::vec2);
+    size_t totalSize = vertsSize + normsSize + uvsSize;
 
-    if (verts.size() > 0) {
-        glBufferData(GL_ARRAY_BUFFER, vertsBytes + normsBytes + uvsBytes, NULL, GL_STATIC_DRAW);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, vertsBytes, &verts[0]);
-        if (norms.size() > 0) glBufferSubData(GL_ARRAY_BUFFER, vertsBytes, normsBytes, &norms[0]);
-        if (texCoords.size() > 0) glBufferSubData(GL_ARRAY_BUFFER, vertsBytes + normsBytes, uvsBytes, &texCoords[0]);
+    // Daca avem date de trimis
+    if (totalSize > 0) {
+        // Rezervam memoria
+        glBufferData(GL_ARRAY_BUFFER, totalSize, NULL, GL_STATIC_DRAW);
 
-        glEnableVertexAttribArray(0); glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)0);
-        if (norms.size() > 0) { glEnableVertexAttribArray(1); glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (GLvoid*)(vertsBytes)); }
-        if (texCoords.size() > 0) { glEnableVertexAttribArray(2); glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (GLvoid*)(vertsBytes + normsBytes)); }
+        // Umplem spatiul rezervat pe bucati 
+        // Punem varfurile la inceput (offset 0) ...
+        glBufferSubData(GL_ARRAY_BUFFER, 0, vertsSize, verts.data());
+        if (normsSize > 0) {
+            glBufferSubData(GL_ARRAY_BUFFER, vertsSize, normsSize, norms.data());
+        }
+        if (uvsSize > 0) {
+            glBufferSubData(GL_ARRAY_BUFFER, vertsSize + normsSize, uvsSize, texCoords.data());
+        }
+
+        // Configuram atributele pentru shader
+        // Atributul 0: pozitia
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+        // Atributul 1: normala
+        if (normsSize > 0) {
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)vertsSize);
+        }
+        // Atributul 2: textura
+        if (uvsSize > 0) {
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, (void*)(vertsSize + normsSize));
+        }
     }
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 }
 
 void Cleanup(void) {
     glDeleteProgram(ProgramId);
-    glDeleteVertexArrays(1, &VaoIdRoom); glDeleteBuffers(1, &VboIdRoom);
-    glDeleteVertexArrays(1, &VaoIdTree); glDeleteBuffers(1, &VboIdTree);
-    glDeleteVertexArrays(1, &VaoIdStar); glDeleteBuffers(1, &VboIdStar);
+    glDeleteVertexArrays(1, &VaoRoom); glDeleteBuffers(1, &VboRoom);
+    glDeleteVertexArrays(1, &VaoTree); glDeleteBuffers(1, &VboTree);
+    glDeleteVertexArrays(1, &VaoStar); glDeleteBuffers(1, &VboStar);
     glDeleteVertexArrays(1, &VaoIdFireplace); glDeleteBuffers(1, &VboIdFireplace);
     glDeleteVertexArrays(1, &VaoIdFireplaceTop); glDeleteBuffers(1, &VboIdFireplaceTop);
     glDeleteVertexArrays(1, &VaoIdFire); glDeleteBuffers(1, &VboIdFire);
-    if (VaoIdWire) { glDeleteVertexArrays(1, &VaoIdWire); glDeleteBuffers(1, &VboIdWire); }
-    if (VaoIdBulb) { glDeleteVertexArrays(1, &VaoIdBulb); glDeleteBuffers(1, &VboIdBulb); }
+    if (VaoWire) { glDeleteVertexArrays(1, &VaoWire); glDeleteBuffers(1, &VboWire); }
+    if (VaoBulb) { glDeleteVertexArrays(1, &VaoBulb); glDeleteBuffers(1, &VboBulb); }
     if (WhiteTexture) glDeleteTextures(1, &WhiteTexture);
     if (BlackTexture) glDeleteTextures(1, &BlackTexture);
 }
@@ -810,83 +869,75 @@ void Cleanup(void) {
 
 void Initialize(void)
 {
-    //glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     glClearColor(0.15f, 0.15f, 0.15f, 1.0f);
-    //glClearColor(0.35f, 0.35f, 0.35f, 1.0f);
 
-    // 1. INCARCARE SUFRAGERIE
+    // Incarcare sufragerie
     std::string roomPath = "livingroom.obj";
     loadOBJ(roomPath.c_str(), roomVertices, roomUvs, roomNormals);
     nrVerticesRoom = roomVertices.size();
 
+    // Calculam centrul sufrageriei pentru a centra camera
     if (nrVerticesRoom > 0) {
-        glm::vec3 center(0.0f);
-        for (const auto& v : roomVertices) center += v;
-        center /= (float)nrVerticesRoom;
-        refX = center.x; refY = center.y; refZ = center.z;
+        glm::vec3 sum(0.0f);
+        // Adunam toate pozitiile punctelor din camera
+        for (const auto& vertex : roomVertices) {
+            sum += vertex;
+        }
+        // Calculam media
+        glm::vec3 roomCenter = sum / (float)nrVerticesRoom;
+        // Actualizam punctul de referinta
+        refX = roomCenter.x;
+        refY = roomCenter.y;
+        refZ = roomCenter.z;
     }
+    UploadMeshToGPU(VaoRoom, VboRoom, roomVertices, roomNormals, roomUvs);
+    TextureRoom = LoadTexture("livingroom.png");
 
     // pun baza semineului la baza sufrageriei
     fireplacePosition.y = refY;
 
-    UploadMeshToGPU(VaoIdRoom, VboIdRoom, roomVertices, roomNormals, roomUvs);
-    TextureRoom = LoadTexture("livingroom.png");
-
-    // 2. GENERARE BRAD (AICI E SCHIMBAREA)
-    // Nu mai incarcam din fisier, ci generam noi conul.
-    CreateProceduralCone(treeVertices, treeNormals, treeUvs);
+    // Creare brad 
+    CreateTree(treeVertices, treeNormals, treeUvs);
     nrVerticesTree = treeVertices.size();
+    UploadMeshToGPU(VaoTree, VboTree, treeVertices, treeNormals, treeUvs);
+    TextureTree = LoadTexture("green.png"); 
 
-    UploadMeshToGPU(VaoIdTree, VboIdTree, treeVertices, treeNormals, treeUvs);
-    TextureTree = LoadTexture("green.png"); // Folosim patratul verde
-
-    // --- GENERARE INSTALATIE (fir + beculete) ---
-    // number of bulbs and spiral params (local cone coordinates)
-    bulbCount = 70; // changeable, reduced to lower total light
-    float coneHeight = 2.5f; // must match CreateProceduralCone
+    // Generare instalatie
+    bulbCount = 70;
+    float coneHeight = 2.5f;
     float coneBaseRadius = 1.0f;
     int turns = 8;
-    GenerateSpiralOnCone(bulbLocalPositions, bulbCount, coneHeight, coneBaseRadius, turns);
+    GenerateSpiralOnTree(bulbLocalPositions, bulbCount, coneHeight, coneBaseRadius, turns);
 
-    // offset bulbs slightly outward along radial direction so they render over the wire
-    float bulbOffset = 0.02f; // small offset in local cone units
-    for (int i = 0; i < (int)bulbLocalPositions.size(); ++i) {
-        glm::vec3 &p = bulbLocalPositions[i];
-        glm::vec3 radial = glm::vec3(p.x, 0.0f, p.z);
-        float len = glm::length(radial);
-        if (len > 1e-5f) radial = glm::normalize(radial);
-        else radial = glm::vec3(1.0f, 0.0f, 0.0f);
-        p += radial * bulbOffset;
+    // Mutam usor fiecare bec deasupra firului
+    float pushDistance = 0.02f; 
+    for (int i = 0; i < bulbLocalPositions.size(); ++i) {
+        glm::vec3 currentPos = bulbLocalPositions[i];
+        // Calculam directia spre exterior
+        glm::vec3 directionOut(currentPos.x, 0.0f, currentPos.z);
+        if (glm::length(directionOut) > 0.0f) {
+            // Normalizam directia 
+            directionOut = glm::normalize(directionOut);
+            bulbLocalPositions[i] += directionOut * pushDistance;
+        }
     }
 
-    // create a small sphere mesh for bulb geometry
-    CreateUnitSphereTriangles(bulbVerts, bulbNormals, bulbUvs, 1.0f, 10, 14);
+    // Creare mesh pentru bec 
+    CreateSphere(bulbVerts, bulbNormals, bulbUvs, 1.0f, 10, 14);
     nrVerticesBulb = (int)bulbVerts.size();
-    UploadMeshToGPU(VaoIdBulb, VboIdBulb, bulbVerts, bulbNormals, bulbUvs);
+    UploadMeshToGPU(VaoBulb, VboBulb, bulbVerts, bulbNormals, bulbUvs);
 
-    // upload wire points (same spiral, denser)
+    // Generare fir instalatie
     std::vector<glm::vec3> wirePoints;
+    int densityFactor = 50; // densitate mare pentru linie fina
+    int totalWirePoints = bulbCount * densityFactor; 
+    GenerateSpiralOnTree(wirePoints, totalWirePoints, coneHeight, coneBaseRadius, turns);
+    CreateWire(VaoWire, VboWire, wirePoints);
 
-    // Pastram densitatea mare ca sa fie linia fina (50 puncte per segment de bec)
-    int wireSamples = bulbCount * 50;
-
-    // --- MODIFICARE IMPORTANTA ---
-    // In loc sa calculam manual (si gresit), apelam aceeasi functie ca la becuri!
-    // Astfel, firul va avea EXACT aceeasi rotatie si distantare ca becurile.
-    GenerateSpiralOnCone(wirePoints, wireSamples, coneHeight, coneBaseRadius, turns);
-    // -----------------------------
-
-    UploadLineToGPU(VaoIdWire, VboIdWire, wirePoints);
-
-    // bulb colors and intensities
     bulbColors.resize(bulbCount);
     bulbIntensities.resize(bulbCount);
-
-    // NU mai folosim random, vrem totul constant
     for (int i = 0; i < bulbCount; ++i) {
         int colorType = i % 4;
-
-        // 1. Setam Culorile (Rosu, Albastru, Verde, Portocaliu)
         if (colorType == 0) {
             bulbColors[i] = glm::vec3(1.0f, 0.0f, 0.0f); // Rosu
         }
@@ -899,25 +950,16 @@ void Initialize(void)
         else {
             bulbColors[i] = glm::vec3(1.0f, 0.5f, 0.0f); // Portocaliu
         }
-
-        // 2. MODIFICARE: Intensitate CONSTANTA pentru toate
-        // Setam o valoare fixa (ex: 2.0f) ca sa fie toate la fel de luminoase si mereu aprinse
-        //bulbIntensities[i] = 2.0f;
         bulbIntensities[i] = 2.0f;
     }
 
-    // white texture for bulbs (simple shader sampling)
-    WhiteTexture = CreateWhiteTexture();
-    // load user-provided black texture for the wire if available
+    WhiteTexture = LoadTexture("white.png");
     BlackTexture = LoadTexture("black.png");
-    if (BlackTexture == 0) {
-        // fallback to procedural black
-        BlackTexture = CreateBlackTexture();
-    }
-    // 3. GENERARE STEA
+
+    // Generare stea
     CreateProceduralStar(starVertices, starNormals, starUvs);
     nrVerticesStar = starVertices.size();
-    UploadMeshToGPU(VaoIdStar, VboIdStar, starVertices, starNormals, starUvs);
+    UploadMeshToGPU(VaoStar, VboStar, starVertices, starNormals, starUvs);
 
     // Generare semineu
     CreateFireplace(fireplaceVertices, fireplaceNormals, fireplaceUvs);
@@ -1087,202 +1129,189 @@ void RenderFunction(void)
     glEnable(GL_DEPTH_TEST);
     glUseProgram(ProgramId);
 
-    // --- CAMERA ---
+    // Camera
     obsY = refY + dist * sin(alpha);
     float radiusXZ = dist * cos(alpha);
     obsX = refX + radiusXZ * sin(beta);
     obsZ = refZ + radiusXZ * cos(beta);
-
     glm::vec3 obs = glm::vec3(obsX, obsY, obsZ);
     glm::vec3 pctRef = glm::vec3(refX, refY, refZ);
     glm::vec3 vert = glm::vec3(0.0f, 1.0f, 0.0f);
-
     glUniform3f(viewPosLocation, obsX, obsY, obsZ);
     view = glm::lookAt(obs, pctRef, vert);
     glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
-
     projection = glm::infinitePerspective(GLfloat(fov), GLfloat(width) / GLfloat(height), dNear);
     glUniformMatrix4fv(projLocation, 1, GL_FALSE, &projection[0][0]);
 
-    // 1. DESENARE SUFRAGERIE
-    if (VaoIdRoom != 0 && nrVerticesRoom > 0) {
+    // Desenare sufragerie
+    if (VaoRoom != 0 && nrVerticesRoom > 0) {
         glm::mat4 modelRoom = glm::mat4(1.0f);
         glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelRoom[0][0]);
-
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, TextureRoom);
-        glBindVertexArray(VaoIdRoom);
+        glBindVertexArray(VaoRoom);
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesRoom);
     }
 
-    // 2. DESENARE BRAD GENERAT
-    if (VaoIdTree != 0 && nrVerticesTree > 0) {
+    // Desenare brad cu instalatie si beculete
+    if (VaoTree != 0 && nrVerticesTree > 0) {
+        // Desenare brad
         glm::mat4 modelTree = glm::mat4(1.0f);
-
+        // Pozitionare si Scalare
         modelTree = glm::translate(modelTree, treePosition);
-        // Scalam la marime normala
         modelTree = glm::scale(modelTree, glm::vec3(treeScale, treeScale * 1.5f, treeScale));
-
         glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelTree[0][0]);
-
-        // Draw tree geometry
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, TextureTree);
-        glBindVertexArray(VaoIdTree);
+        glBindVertexArray(VaoTree);
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesTree);
 
-        // Draw wire (firul negru)
-        if (VaoIdWire != 0 && nrWirePoints > 0) {
+        // Desenare fir instalatie
+        if (VaoWire != 0 && nrWirePoints > 0) {
+            // Fortam culoarea neagra in shader
             if (allowBlackLocation >= 0) glUniform1i(allowBlackLocation, 1);
-
             glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelTree[0][0]);
-            glBindVertexArray(VaoIdWire);
-
-            // Setari de netezire
+            glBindVertexArray(VaoWire);
+            // Setari pentru linie (netezire + transparenta)
             glEnable(GL_LINE_SMOOTH);
             glHint(GL_LINE_SMOOTH_HINT, GL_NICEST);
             glEnable(GL_BLEND);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glLineWidth(2.5f);
-
-            // Polygon Offset pentru a evita suprapunerea cu bradul
-            glEnable(GL_POLYGON_OFFSET_LINE);
-            glPolygonOffset(-1.0f, -1.0f);
-
             glDrawArrays(GL_LINE_STRIP, 0, nrWirePoints);
-
-            glDisable(GL_POLYGON_OFFSET_LINE);
+            // Resetam setarile grafice
             glLineWidth(1.0f);
             glDisable(GL_LINE_SMOOTH);
             glDisable(GL_BLEND);
-
             if (allowBlackLocation >= 0) glUniform1i(allowBlackLocation, 0);
         }
 
-        // Draw bulbs (beculete)
-        if (VaoIdBulb != 0 && nrVerticesBulb > 0) {
-
-            // --- ACTUALIZARE MODURI ILUMINARE ---
-            float time = glutGet(GLUT_ELAPSED_TIME) / 1000.0f; // Timpul in secunde
-
+        // Desenare beculete
+        if (VaoBulb != 0 && nrVerticesBulb > 0) {
+            float timeSeconds = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
             for (int i = 0; i < bulbCount; ++i) {
                 switch (lightMode) {
-                case 1:
-                    // MOD 1: DEFAULT (Static Puternic)
-                    bulbIntensities[i] = 10.0f;
-                    break;
-
-                case 2:
-                    // MOD 2: PALPAIT (Toate odata, lent)
-                    bulbIntensities[i] = 6.0f + 4.0f * sin(time * 3.0f);
-                    break;
-
-                case 3:
-                    // MOD 3: PE SARITE (Chasing)
-                {
-                    int speed = int(time * 5.0f);
-                    if ((i + speed) % 3 == 0) {
-                        bulbIntensities[i] = 10.0f; // Aprins
+                    case 1: // Toate aprinse
+                        bulbIntensities[i] = 10.0f;
+                        break;
+                    case 2: // Palpait
+                        bulbIntensities[i] = 6.0f + 4.0f * sin(timeSeconds * 3.0f);
+                        break;
+                    case 3: // Pe sarite
+                    {
+                        int speed = int(timeSeconds * 5.0f);
+                        if ((i + speed) % 3 == 0) {
+                            bulbIntensities[i] = 10.0f;
+                        } else {
+                            bulbIntensities[i] = 0.0f;
+                        }
                     }
-                    else {
-                        bulbIntensities[i] = 0.0f;  // Stins
-                    }
-                }
-                break;
-
-                case 4:
-                    // MOD 4: STINSE
-                    bulbIntensities[i] = 0.0f;
                     break;
+                    case 4: // Stins 
+                        bulbIntensities[i] = 0.0f;
+                        break;
                 }
             }
 
-            // 1. Trimitem pozitiile si culorile luminilor catre shader (pentru iluminarea camerei)
+            // Trimitem datele becurilor catre shader
             if (bulbPosLocation >= 0 && bulbCountLocation >= 0) {
-                std::vector<glm::vec3> bulbWorldPositions;
-                bulbWorldPositions.resize(bulbCount);
+                std::vector<glm::vec3> worldPositions(bulbCount);
                 for (int i = 0; i < bulbCount; ++i) {
-                    glm::vec4 wp = modelTree * glm::vec4(bulbLocalPositions[i], 1.0f);
-                    bulbWorldPositions[i] = glm::vec3(wp.x, wp.y, wp.z);
+                    // Calculam pozitia globala a fiecarui bec
+                    glm::vec4 pos4 = modelTree * glm::vec4(bulbLocalPositions[i], 1.0f);
+                    worldPositions[i] = glm::vec3(pos4.x, pos4.y, pos4.z);
                 }
                 glUniform1i(bulbCountLocation, bulbCount);
-                glUniform3fv(bulbPosLocation, bulbCount, (const GLfloat*)(&bulbWorldPositions[0]));
-                if (bulbColorLocation >= 0) glUniform3fv(bulbColorLocation, bulbCount, (const GLfloat*)(&bulbColors[0]));
-                if (bulbIntensityLocation >= 0) glUniform1fv(bulbIntensityLocation, bulbCount, (const GLfloat*)(&bulbIntensities[0]));
+                glUniform3fv(bulbPosLocation, bulbCount, (const GLfloat*)worldPositions.data());
+                if (bulbColorLocation >= 0) 
+                    glUniform3fv(bulbColorLocation, bulbCount, (const GLfloat*)bulbColors.data());
+                if (bulbIntensityLocation >= 0) 
+                    glUniform1fv(bulbIntensityLocation, bulbCount, (const GLfloat*)bulbIntensities.data());
             }
-
-            // 2. Desenam sferele fizice ale becurilor
-            float bulbScale = 0.03f;
+            // Desenam sferele becurilor
+            float bulbSize = 0.03f;
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, WhiteTexture ? WhiteTexture : TextureTree);
-
             if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 1);
-
+            glBindVertexArray(VaoBulb);
             for (int i = 0; i < bulbCount; ++i) {
-                glm::mat4 m = modelTree * glm::translate(glm::mat4(1.0f), bulbLocalPositions[i]) * glm::scale(glm::mat4(1.0f), glm::vec3(bulbScale));
-                glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &m[0][0]);
-
-                // --- CALCUL CULOARE VIZUALA ---
-                glm::vec3 finalColor = bulbColors[i];
-
-                // Daca intensitatea e 0 (stins), becul devine gri inchis
+                glm::mat4 modelBulb = modelTree; 
+                modelBulb = glm::translate(modelBulb, bulbLocalPositions[i]);
+                modelBulb = glm::scale(modelBulb, glm::vec3(bulbSize));
+                glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelBulb[0][0]);
+                // Calculam culoarea
+                glm::vec3 drawColor = bulbColors[i];
                 if (bulbIntensities[i] < 0.5f) {
-                    finalColor = glm::vec3(0.05f, 0.05f, 0.05f);
-                }
-                else {
-                    // Calculam luminozitatea vizuala (clamp manual ca sa evitam erori)
+                    drawColor = glm::vec3(0.05f, 0.05f, 0.05f); // Gri inchis
+                } else {
+                    // Calculam luminozitatea
                     float brightness = bulbIntensities[i] / 10.0f;
                     if (brightness < 0.5f) brightness = 0.5f;
                     if (brightness > 1.0f) brightness = 1.0f;
-
-                    finalColor *= brightness;
+                    drawColor *= brightness;
                 }
-
+                // Trimitem culoarea finala la shader
                 if (solidColorLocation >= 0) {
-                    glUniform3f(solidColorLocation, finalColor.x, finalColor.y, finalColor.z);
+                    glUniform3f(solidColorLocation, drawColor.x, drawColor.y, drawColor.z);
                 }
-
-                glBindVertexArray(VaoIdBulb);
                 glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesBulb);
             }
 
+            // Dezactivam modul Solid Color
             if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 0);
-
-            // Reset matrix logic
             glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelTree[0][0]);
             if (bulbCountLocation >= 0) glUniform1i(bulbCountLocation, 0);
         }
     }
 
-    // 3. DESENARE STEA (In varful bradului)
-    if (VaoIdStar != 0 && nrVerticesStar > 0) {
+    // Desenare stea
+    // if (VaoStar != 0 && nrVerticesStar > 0) {
+    //     glm::mat4 modelStar = glm::mat4(1.0f);
+    //     float tipHeight = 1.875f;
+
+    //     // 1. Pozitionare (Varf)
+    //     modelStar = glm::translate(modelStar, treePosition + glm::vec3(0.0f, tipHeight, 0.0f));
+
+    //     // 2. Rotire FIXA (fara 'time')
+    //     // O rotim cu -90 grade (-PI/2) ca sa priveasca spre spate (X-), unde e firul
+    //     // Am eliminat offset-ul +0.5 care devia pozitia stelei.
+    //     modelStar = glm::rotate(modelStar, -PI / 2.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+
+    //     // 3. Scalare (Mai mica)
+    //     // Era 1.0 (implicita), acum o facem 0.6
+    //     modelStar = glm::scale(modelStar, glm::vec3(0.6f));
+
+    //     glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelStar[0][0]);
+
+    //     // Culoare Galben-Auriu
+    //     if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 1);
+    //     if (solidColorLocation >= 0) glUniform3f(solidColorLocation, 0.7f, 0.5f, 0.0f);
+
+    //     glActiveTexture(GL_TEXTURE0);
+    //     glBindTexture(GL_TEXTURE_2D, WhiteTexture);
+    //     glBindVertexArray(VaoStar);
+
+    //     glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesStar);
+
+    //     if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 0);
+    // }
+    if (VaoStar != 0 && nrVerticesStar > 0) {
         glm::mat4 modelStar = glm::mat4(1.0f);
-
-        float tipHeight = 1.875f;
-
-        // 1. Pozitionare (Varf)
-        modelStar = glm::translate(modelStar, treePosition + glm::vec3(0.0f, tipHeight, 0.0f));
-
-        // 2. Rotire FIXA (fara 'time')
-        // O rotim cu -90 grade (-PI/2) ca sa priveasca spre Spate (X-), unde e firul
-        modelStar = glm::rotate(modelStar, -PI / 2.0f + 0.5f, glm::vec3(0.0f, 1.0f, 0.0f));
-
-        // 3. Scalare (Mai mica)
-        // Era 1.0 (implicita), acum o facem 0.6
+        // Inaltimea la care punem steaua 
+        float starHeightOffset = 1.875f;
+        // O mutam deasupra pozitiei bradului
+        modelStar = glm::translate(modelStar, treePosition + glm::vec3(0.0f, starHeightOffset, 0.0f));
+        modelStar = glm::rotate(modelStar, -PI / 2.0f, glm::vec3(0.0f, 1.0f, 0.0f));
         modelStar = glm::scale(modelStar, glm::vec3(0.6f));
-
         glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelStar[0][0]);
 
-        // Culoare Galben-Auriu
         if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 1);
+        // Setam culoarea aurie (R=0.7, G=0.5, B=0.0)
         if (solidColorLocation >= 0) glUniform3f(solidColorLocation, 0.7f, 0.5f, 0.0f);
-
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, WhiteTexture);
-        glBindVertexArray(VaoIdStar);
-
+        glBindVertexArray(VaoStar);
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesStar);
-
         if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 0);
     }
 
@@ -1475,7 +1504,7 @@ int main(int argc, char* argv[])
     glutInitDisplayMode(GLUT_RGBA | GLUT_DEPTH | GLUT_DOUBLE);
     glutInitWindowPosition(100, 100);
     glutInitWindowSize(1200, 900);
-    glutCreateWindow("Camera + Brad Generat");
+    glutCreateWindow("Scena de Craciun");
     glewInit();
     Initialize();
     glutReshapeFunc(ChangeSize);
