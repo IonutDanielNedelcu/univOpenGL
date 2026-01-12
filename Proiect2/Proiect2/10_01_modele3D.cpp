@@ -2,10 +2,9 @@
 // ================================================
 // | Grafica pe calculator                        |
 // ================================================
-// | Laboratorul X - 10_01_modele3D.cpp           |
+// | Proiect 2 - Grafica 3D                       |
 // ================================================
-// 
-// Program FINAL: Camera + BRAD GENERAT PROCEDURAL (Fara erori de geometrie)
+//
 
 // Biblioteci
 #include <windows.h>  
@@ -76,11 +75,11 @@ GLuint BlackTexture = 0;
 GLint useSolidColorLocation = -1;
 GLint solidColorLocation = -1;
 
-// --- SETARI INSTALATIE ---
+// SETARI INSTALATIE 
 // 1 = Static, 2 = Palpait, 3 = Pe sarite, 4 = Oprit
 int lightMode = 1;
 
-// --- SETARI GENERALE ---
+// SETARI GENERALE 
 float PI = 3.141592f;
 glm::mat4 myMatrix, view, projection;
 
@@ -89,7 +88,7 @@ float refX = 0.0f, refY = 0.0f, refZ = 0.0f;
 // Pozitia OBSERVATORULUI
 float obsX, obsY, obsZ;
 
-// --- SETARI CAMERA ---
+// SETARI CAMERA 
 float alpha = 0.2f;
 float beta = -0.5f;
 float dist = 6.0f;
@@ -102,10 +101,9 @@ float incrBeta = 0.05f;
 // Proiectie
 float width = 1200, height = 900, dNear = 0.1f, fov = 60.f * PI / 180;
 
-// --- SETARI POZITIE BRAD ---
-// Ajustam Y la 0.0f ca sa stea pe podea (conul generat are baza la Y=0)
+// SETARI POZITIE BRAD 
 glm::vec3 treePosition(2.9f, 3.0f, -0.5f);
-// Scalare normala (1.0) pentru ca obiectul generat are marimi standard (2 metri inaltime)
+// scalarea bradului
 float treeScale = 0.5f;
 
 // allow black texture uniform location
@@ -226,127 +224,126 @@ void CreateProceduralStar(std::vector<glm::vec3>& verts, std::vector<glm::vec3>&
 }
 
 
-// 4. Variabile SEMINEU (Fireplace)
+// VARIABILE SEMINEU
 GLuint VaoIdFireplace, VboIdFireplace, TextureFireplace;
 int nrVerticesFireplace;
 std::vector<glm::vec3> fireplaceVertices;
-std::vector<glm::vec2> fireplaceUvs;
+std::vector<glm::vec2> fireplaceUvs; // texturare
 std::vector<glm::vec3> fireplaceNormals;
 
-// Fireplace top (wood)
+// VARIABILE BLAT SEMINEU
 GLuint VaoIdFireplaceTop, VboIdFireplaceTop, TextureFireplaceTop;
 int nrVerticesFireplaceTop;
 std::vector<glm::vec3> fireplaceTopVertices;
-std::vector<glm::vec2> fireplaceTopUvs;
+std::vector<glm::vec2> fireplaceTopUvs; // texturare
 std::vector<glm::vec3> fireplaceTopNormals;
 
-// --- VARIABILE PENTRU LEMNE (logs) ---
+// VARIABILE LEMNE
 GLuint VaoIdLogs = 0, VboIdLogs = 0; 
 int nrVerticesLogs = 0;
 std::vector<glm::vec3> logVertices;
 std::vector<glm::vec3> logNormals;
-std::vector<glm::vec2> logUvs;
+std::vector<glm::vec2> logUvs; // texturare
 GLuint TextureLogs = 0;
 
+// Structura pentru a genera mai multe instante ale aceluiasi lemn
 struct LogInstance {
     glm::vec3 pos; // local to fireplace model
-    glm::vec3 size; // dimensions (X = length, Y = height, Z = thickness)
-    float rotY;     // rotation around Y in radians
+    glm::vec3 size; // dimensiuni (X = lungime, Y = inaltime, Z = grosime)
+    float rotY;     // rotatia in jurul lui Y
 };
 std::vector<LogInstance> logs;
 
-// Fire (deformed cone)
+// VARIABILE FOC
 GLuint VaoIdFire, VboIdFire;
 int nrVerticesFire;
 std::vector<glm::vec3> fireVertices;
-std::vector<glm::vec3> fireBasePositions; // original positions for deformation
 std::vector<glm::vec3> fireNormals;
-std::vector<glm::vec2> fireUvs;
+std::vector<glm::vec2> fireUvs; // texturare
 
-// --- SMOKE PARTICLE SYSTEM ---
+// PARTICULE FUM
 struct SmokeParticle {
     glm::vec3 pos;
-    glm::vec3 vel;
-    float life; // remaining life [0..1]
+    glm::vec3 vel; // velocitatea (viteza) particulei
+    float life; // in [0,1]; cat % din "viata" mai are particula
     float size;
 };
 std::vector<SmokeParticle> smokeParticles;
+
+// VARIABILE FUM
 GLuint VaoIdSmoke = 0, VboIdSmoke = 0;
 GLuint ParticleProgram = 0;
 bool smokeUseFallbackShader = false;
-int maxSmokeParticles = 800;
-float smokeSpawnRate = 240.0f; // particles per second (more particles, smaller size)
+int maxSmokeParticles = 800; // nr maxim de particule existente per total
+float smokeSpawnRate = 240.0f; // particule pe secunda
 float lastSmokeTime = 0.0f;
 float lastFrameTime = 0.0f;
-// smoke stop factor (fraction of fireplace height where smoke should stop)
-float smokeCeilingFactor = 0.55f; // 0..1 (lower = stop lower)
+float smokeCeilingFactor = 0.45f; // la cat % pana la tavan dispare fumul
 
-// --- SETARI SEMINEU (Fireplace) ---
+// VARIABILE SEMINEU
 glm::vec3 fireplacePosition(-2.0f, 0.0f, -1.0f);
-float fireplaceScale = 0.8f;
-// Fireplace physical dimensions (used by procedural generators and placement)
+float fireplaceScale = 0.8f; // micsorez semineul initial
+// dimensiunile semineului
 float fireplaceWidth = 1.2f;
 float fireplaceHeight = 1.0f;
 float fireplaceDepth = 0.6f;
-// Offsets to allow fine tuning in X/Y/Z for fireplace and fire independently
+
+// offset-uri pentru semineu si foc in functie de pozitia initiala pentru a le muta
 glm::vec3 fireplaceOffset(3.0f, -0.19f, -2.9f);
 glm::vec3 fireOffset(-0.1f, 0.0f, 0.0f);
 
-// --- FUNCTIE GENERARE SEMINEU (dreptunghiuri) ---
-void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
+// functia pentru crearea semineului
+void CreateFireplace(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
 {
+    // ma asigur ca vectorii sunt curatati
     verts.clear(); norms.clear(); uvs.clear();
 
-    float width = 1.2f;   // latime
-    float height = 1.0f;  // inaltime
-    float depth = 0.6f;   // adancime (external kept as original)
-
+    // punctele pentru semineu
     glm::vec3 p0(0.0f, 0.0f, 0.0f);
-    glm::vec3 p1(width, 0.0f, 0.0f);
-    glm::vec3 p2(width, 0.0f, depth);
-    glm::vec3 p3(0.0f, 0.0f, depth);
-    glm::vec3 p4(0.0f, height, 0.0f);
-    glm::vec3 p5(width, height, 0.0f);
-    glm::vec3 p6(width, height, depth);
-    glm::vec3 p7(0.0f, height, depth);
+    glm::vec3 p1(fireplaceWidth, 0.0f, 0.0f);
+    glm::vec3 p2(fireplaceWidth, 0.0f, fireplaceDepth);
+    glm::vec3 p3(0.0f, 0.0f, fireplaceDepth);
+    glm::vec3 p4(0.0f, fireplaceHeight, 0.0f);
+    glm::vec3 p5(fireplaceWidth, fireplaceHeight, 0.0f);
+    glm::vec3 p6(fireplaceWidth, fireplaceHeight, fireplaceDepth);
+    glm::vec3 p7(0.0f, fireplaceHeight, fireplaceDepth);
 
-    // Bottom
-    // Bottom (two triangles)
+    // Podeaua
     verts.push_back(p0); verts.push_back(p1); verts.push_back(p2);
     verts.push_back(p0); verts.push_back(p2); verts.push_back(p3);
     for (int i = 0; i < 6; ++i) norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Top (two triangles)
+    // "Tavanul" semineului
     verts.push_back(p4); verts.push_back(p5); verts.push_back(p6);
     verts.push_back(p4); verts.push_back(p6); verts.push_back(p7);
     for (int i = 0; i < 6; ++i) norms.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Front (-Z) full panel (completely covered)
+    // Spate
     verts.push_back(p1); verts.push_back(p0); verts.push_back(p4);
     verts.push_back(p1); verts.push_back(p4); verts.push_back(p5);
     for (int i = 0; i < 6; ++i) norms.push_back(glm::vec3(0.0f, 0.0f, -1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Back (-Z) with bottom opening: create left, right and top panels, leave lower-middle empty (panels placed at z = depth)
-    float sideWidthOpen = 0.18f; // width of left/right side panels
-    float openingHeight = 0.65f; // height of the opening from the bottom (taller)
+    // Fata
+    float sideWidthOpen = 0.18f; // latimea deschiderii semineului
+    float openingHeight = 0.65f; // inaltimea deschiderii semineului
 
-    // Coordinates on front plane (z = minZ)
+    // Coordonatele panoului din fata
     float fx0 = 0.0f;
     float fx1 = sideWidthOpen;
-    float fx2 = width - sideWidthOpen;
-    float fx3 = width;
+    float fx2 = fireplaceWidth - sideWidthOpen;
+    float fx3 = fireplaceWidth;
     float fy0 = 0.0f;
     float fy1 = openingHeight;
-    float fy2 = height;
-    float fz = depth; // put opening on back plane (z = depth)
+    float fy2 = fireplaceHeight;
+    float fz = fireplaceDepth; // put opening on back plane (z = depth)
 
-    // Left panel (x: fx0->fx1, y: fy0->fy2)
+    // Panoul din stanga
     glm::vec3 L0(fx0, fy0, fz);
     glm::vec3 L1(fx1, fy0, fz);
     glm::vec3 L2(fx1, fy2, fz);
@@ -357,7 +354,7 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Right panel (x: fx2->fx3, y: fy0->fy2)
+    // Panoul din dreapta
     glm::vec3 R0(fx2, fy0, fz);
     glm::vec3 R1(fx3, fy0, fz);
     glm::vec3 R2(fx3, fy2, fz);
@@ -368,7 +365,7 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Top panel above the opening (x: fx1->fx2, y: fy1->fy2)
+    // Panoul de deasupra deschiderii
     glm::vec3 T0(fx1, fy1, fz);
     glm::vec3 T1(fx2, fy1, fz);
     glm::vec3 T2(fx2, fy2, fz);
@@ -379,15 +376,15 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Interior cavity walls (slightly inset) to delimit the fire area
-    float innerOffset = 0.30f; // thickness inset from the back plane (larger => cavity deeper)
-    float innerZ = depth - innerOffset;
+    // Peretii din interiorul deschiderii semineului
+    float innerOffset = 0.30f; // offset-ul fata de exteriorul semineului
+    float innerZ = fireplaceDepth - innerOffset;
     float ix0 = fx1; // inner min x
     float ix1 = fx2; // inner max x
     float iy0 = fy0; // inner min y
     float iy1 = fy1; // inner max y (top of opening)
 
-    // Inner back face (facing forward into cavity) at z = innerZ
+    // Paretele din spate al cavitatii
     glm::vec3 innerBack0(ix0, iy0, innerZ);
     glm::vec3 innerBack1(ix1, iy0, innerZ);
     glm::vec3 innerBack2(ix1, iy1, innerZ);
@@ -398,10 +395,10 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Inner left wall (thin panel) at x = ix0, spanning z from innerZ to depth
+    // Peretele din stanga al cavitatii
     glm::vec3 innerLeft0(ix0, iy0, innerZ);
-    glm::vec3 innerLeft1(ix0, iy0, depth);
-    glm::vec3 innerLeft2(ix0, iy1, depth);
+    glm::vec3 innerLeft1(ix0, iy0, fireplaceDepth);
+    glm::vec3 innerLeft2(ix0, iy1, fireplaceDepth);
     glm::vec3 innerLeft3(ix0, iy1, innerZ);
     verts.push_back(innerLeft1); verts.push_back(innerLeft0); verts.push_back(innerLeft3);
     verts.push_back(innerLeft1); verts.push_back(innerLeft3); verts.push_back(innerLeft2);
@@ -409,10 +406,10 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Inner right wall (thin panel) at x = ix1
+    // Peretele din dreapta al cavitatii
     glm::vec3 innerRight0(ix1, iy0, innerZ);
-    glm::vec3 innerRight1(ix1, iy0, depth);
-    glm::vec3 innerRight2(ix1, iy1, depth);
+    glm::vec3 innerRight1(ix1, iy0, fireplaceDepth);
+    glm::vec3 innerRight2(ix1, iy1, fireplaceDepth);
     glm::vec3 innerRight3(ix1, iy1, innerZ);
     verts.push_back(innerRight0); verts.push_back(innerRight1); verts.push_back(innerRight3);
     verts.push_back(innerRight1); verts.push_back(innerRight2); verts.push_back(innerRight3);
@@ -420,27 +417,25 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // innerTop (ceiling) of the cavity at y = iy1 (faces downward)
+    // Tavanul cavitatii
     glm::vec3 innerTop0(ix0, iy1, innerZ);
     glm::vec3 innerTop1(ix1, iy1, innerZ);
-    glm::vec3 innerTop2(ix1, iy1, depth);
-    glm::vec3 innerTop3(ix0, iy1, depth);
+    glm::vec3 innerTop2(ix1, iy1, fireplaceDepth);
+    glm::vec3 innerTop3(ix0, iy1, fireplaceDepth);
     verts.push_back(innerTop1); verts.push_back(innerTop0); verts.push_back(innerTop3);
     verts.push_back(innerTop1); verts.push_back(innerTop3); verts.push_back(innerTop2);
     for (int i = 0; i < 6; ++i) norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // (Removed full back face so the opening panels remain visible)
-
-    // Left (-X) (two triangles)
+    // Stanga semineului
     verts.push_back(p0); verts.push_back(p3); verts.push_back(p7);
     verts.push_back(p0); verts.push_back(p7); verts.push_back(p4);
     for (int i = 0; i < 6; ++i) norms.push_back(glm::vec3(-1.0f, 0.0f, 0.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f));
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 
-    // Right (+X) (two triangles)
+    // Dreapta semineului
     verts.push_back(p2); verts.push_back(p1); verts.push_back(p5);
     verts.push_back(p2); verts.push_back(p5); verts.push_back(p6);
     for (int i = 0; i < 6; ++i) norms.push_back(glm::vec3(1.0f, 0.0f, 0.0f));
@@ -448,73 +443,71 @@ void CreateProceduralFireplace(std::vector<glm::vec3>& verts, std::vector<glm::v
     uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 1.0f)); uvs.push_back(glm::vec2(0.0f, 1.0f));
 }
 
-// Create a thin wooden top (small box) positioned to sit on top of the fireplace
+// Crearea blatului de pe semineu
 void CreateFireplaceTop(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
 {
+    // Ma asigur ca sunt curatati vectorii
     verts.clear(); norms.clear(); uvs.clear();
-    // Fireplace base dimensions (must match CreateProceduralFireplace)
-    float fireWidth = 1.2f;
-    float fireDepth = 0.6f;
-    float fireHeight = 1.0f;
 
-    // Top dimensions and margins: make top slightly larger (overhang on all sides)
-    float marginX = 0.08f; // overhang on left and right
-    float marginFrontZ = 0.0f; // no overhang on the front (min Z)
-    float marginBackZ = 0.08f; // overhang on the back (max Z)
-    float topHeight = 0.12f; // thickness of wooden top
+    // Dimensiunile blatului si marginile (blatul iese putin in afara)
+    float marginX = 0.08f; // marginea pe stanga si dreapta semineului
+    float marginFrontZ = 0.08f; // marginea spre sufragerie
+    float topHeight = 0.12f; // grosimea blatului
 
-    // Compute coordinates so that the top's max Z equals fireplace depth (flush at back)
+    // Coordonatele finale pentru colturile semineului
     float minX = -marginX;
-    float maxX = fireWidth + marginX;
-    float minZ = -marginFrontZ;
-    float maxZ = fireDepth + marginBackZ; // extend at back as well
-    float baseY = fireHeight; // sits on top of fireplace
+    float maxX = fireplaceWidth + marginX;
+    float minZ = 0.0f;
+    float maxZ = fireplaceDepth + marginFrontZ; // extend at back as well
+    float baseY = fireplaceHeight; // sits on top of fireplace
 
+    // Fata de jos a blatului
     glm::vec3 a(minX, baseY, minZ);
     glm::vec3 b(maxX, baseY, minZ);
     glm::vec3 c(maxX, baseY, maxZ);
     glm::vec3 d(minX, baseY, maxZ);
+    // Fata de sus a blatului
     glm::vec3 e = a + glm::vec3(0.0f, topHeight, 0.0f);
     glm::vec3 f = b + glm::vec3(0.0f, topHeight, 0.0f);
     glm::vec3 g = c + glm::vec3(0.0f, topHeight, 0.0f);
     glm::vec3 h = d + glm::vec3(0.0f, topHeight, 0.0f);
 
-    // bottom
+    // baza blatului
     verts.push_back(a); verts.push_back(b); verts.push_back(c);
     verts.push_back(a); verts.push_back(c); verts.push_back(d);
     for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,-1.0f,0.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // top
+    // "tavanul" blatului
     verts.push_back(e); verts.push_back(f); verts.push_back(g);
     verts.push_back(e); verts.push_back(g); verts.push_back(h);
     for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,1.0f,0.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // front
+    // fata blatului
     verts.push_back(b); verts.push_back(a); verts.push_back(e);
     verts.push_back(b); verts.push_back(e); verts.push_back(f);
     for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,0.0f,-1.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // back
+    // spatele blatului
     verts.push_back(d); verts.push_back(c); verts.push_back(g);
     verts.push_back(d); verts.push_back(g); verts.push_back(h);
     for(int i=0;i<6;++i) norms.push_back(glm::vec3(0.0f,0.0f,1.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // left
+    // stanga blatului
     verts.push_back(a); verts.push_back(d); verts.push_back(h);
     verts.push_back(a); verts.push_back(h); verts.push_back(e);
     for(int i=0;i<6;++i) norms.push_back(glm::vec3(-1.0f,0.0f,0.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f));
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // right
+    // dreapta blatului
     verts.push_back(c); verts.push_back(b); verts.push_back(f);
     verts.push_back(c); verts.push_back(f); verts.push_back(g);
     for(int i=0;i<6;++i) norms.push_back(glm::vec3(1.0f,0.0f,0.0f));
@@ -522,16 +515,16 @@ void CreateFireplaceTop(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& n
     uvs.push_back(glm::vec2(0.0f,0.0f)); uvs.push_back(glm::vec2(1.0f,1.0f)); uvs.push_back(glm::vec2(0.0f,1.0f));
 }
 
-// (Removed CreateUnitBox) Logs are generated inline in Initialize now.
 
-// Create a procedural cone to be used for the fire (triangulated)
-void CreateProceduralFireCone(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
+void CreateFirecone(std::vector<glm::vec3>& verts, std::vector<glm::vec3>& norms, std::vector<glm::vec2>& uvs)
 {
+    // ma asigur ca sunt curatati vectorii
     verts.clear(); norms.clear(); uvs.clear();
     const int segments = 24;
-    const float height = 0.45f; // smaller height for fire
-    const float radius = 0.16f; // smaller radius for fire
+    const float height = 0.45f;
+    const float radius = 0.16f;
 
+    // construit in jurul originii sistemului de axe (in sus)
     glm::vec3 top(0.0f, height, 0.0f);
     glm::vec3 centerBottom(0.0f, 0.0f, 0.0f);
 
@@ -541,13 +534,13 @@ void CreateProceduralFireCone(std::vector<glm::vec3>& verts, std::vector<glm::ve
         glm::vec3 p1(radius * cos(a1), 0.0f, radius * sin(a1));
         glm::vec3 p2(radius * cos(a2), 0.0f, radius * sin(a2));
 
-        // Side triangle (top, p2, p1)
+        // triunghi lateral
         verts.push_back(top); verts.push_back(p2); verts.push_back(p1);
         glm::vec3 n = glm::normalize(glm::cross(p2 - top, p1 - top));
         norms.push_back(n); norms.push_back(n); norms.push_back(n);
         uvs.push_back(glm::vec2(0.5f, 1.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f)); uvs.push_back(glm::vec2(0.0f, 0.0f));
 
-        // Base triangle (centerBottom, p1, p2)
+        // triunghi la baza
         verts.push_back(centerBottom); verts.push_back(p1); verts.push_back(p2);
         norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f)); norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f)); norms.push_back(glm::vec3(0.0f, -1.0f, 0.0f));
         uvs.push_back(glm::vec2(0.5f, 0.5f)); uvs.push_back(glm::vec2(0.0f, 0.0f)); uvs.push_back(glm::vec2(1.0f, 0.0f));
@@ -800,12 +793,6 @@ void UploadMeshToGPU(GLuint& vao, GLuint& vbo,
     }
 }
 
-// Simple random float helper (avoids lambda usage)
-static float rndf(std::default_random_engine &rng, float a, float b)
-{
-    return a + (b - a) * (float(rng()) / float(rng.max()));
-}
-
 void Cleanup(void) {
     glDeleteProgram(ProgramId);
     glDeleteVertexArrays(1, &VaoIdRoom); glDeleteBuffers(1, &VboIdRoom);
@@ -839,8 +826,7 @@ void Initialize(void)
         refX = center.x; refY = center.y; refZ = center.z;
     }
 
-    // Align fireplace to room reference Y so it sits on the floor
-    // apply a small downward offset so the base visually rests on the floor
+    // pun baza semineului la baza sufrageriei
     fireplacePosition.y = refY;
 
     UploadMeshToGPU(VaoIdRoom, VboIdRoom, roomVertices, roomNormals, roomUvs);
@@ -933,34 +919,25 @@ void Initialize(void)
     nrVerticesStar = starVertices.size();
     UploadMeshToGPU(VaoIdStar, VboIdStar, starVertices, starNormals, starUvs);
 
-    // 4. GENERARE SEMINEU (Fireplace)
-    CreateProceduralFireplace(fireplaceVertices, fireplaceNormals, fireplaceUvs);
+    // Generare semineu
+    CreateFireplace(fireplaceVertices, fireplaceNormals, fireplaceUvs);
     nrVerticesFireplace = fireplaceVertices.size();
     UploadMeshToGPU(VaoIdFireplace, VboIdFireplace, fireplaceVertices, fireplaceNormals, fireplaceUvs);
     TextureFireplace = LoadTexture("fireplace.png");
-    if (TextureFireplace == 0) {
-        // fallback: use tree texture if fireplace texture missing
-        TextureFireplace = TextureTree;
-    }
 
-    // Fireplace top (wood)
+    // Generare blat semineu
     CreateFireplaceTop(fireplaceTopVertices, fireplaceTopNormals, fireplaceTopUvs);
     nrVerticesFireplaceTop = fireplaceTopVertices.size();
     UploadMeshToGPU(VaoIdFireplaceTop, VboIdFireplaceTop, fireplaceTopVertices, fireplaceTopNormals, fireplaceTopUvs);
     TextureFireplaceTop = LoadTexture("wood.png");
-    if (TextureFireplaceTop == 0) {
-        TextureFireplaceTop = TextureRoom; // fallback to room texture if no wood
-    }
 
-    // Fire (deformed cone)
-    CreateProceduralFireCone(fireVertices, fireNormals, fireUvs);
+    // Generare foc
+    CreateFirecone(fireVertices, fireNormals, fireUvs);
     nrVerticesFire = fireVertices.size();
-    // store base positions for deformation
-    fireBasePositions = fireVertices;
     UploadMeshToGPU(VaoIdFire, VboIdFire, fireVertices, fireNormals, fireUvs);
 
-    // --- GENERARE LEMNE PENTRU FOC ---
-    // Generate a unit box mesh inline (centered at origin, size 1) and upload once; instances will be positioned using transforms
+    // Generare lemne foc
+    // De fapt generez un cub pe care apoi il mut vizual pentru mai multe lemne
     logVertices.clear(); logNormals.clear(); logUvs.clear();
     glm::vec3 p000(-0.5f, -0.5f, -0.5f);
     glm::vec3 p100(0.5f, -0.5f, -0.5f);
@@ -971,42 +948,42 @@ void Initialize(void)
     glm::vec3 p111(0.5f, 0.5f, 0.5f);
     glm::vec3 p011(-0.5f, 0.5f, 0.5f);
 
-    // front (+Z)
+    // fata cubului
     logVertices.push_back(p101); logVertices.push_back(p001); logVertices.push_back(p011);
     logVertices.push_back(p101); logVertices.push_back(p011); logVertices.push_back(p111);
     for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,0.0f,1.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // back (-Z)
+    // spatele cubului
     logVertices.push_back(p000); logVertices.push_back(p100); logVertices.push_back(p110);
     logVertices.push_back(p000); logVertices.push_back(p110); logVertices.push_back(p010);
     for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,0.0f,-1.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // left (-X)
+    // stanga cubului
     logVertices.push_back(p001); logVertices.push_back(p000); logVertices.push_back(p010);
     logVertices.push_back(p001); logVertices.push_back(p010); logVertices.push_back(p011);
     for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(-1.0f,0.0f,0.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // right (+X)
+    // dreapta cubului
     logVertices.push_back(p100); logVertices.push_back(p101); logVertices.push_back(p111);
     logVertices.push_back(p100); logVertices.push_back(p111); logVertices.push_back(p110);
     for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(1.0f,0.0f,0.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // top (+Y)
+    // baza de sus a cubului
     logVertices.push_back(p011); logVertices.push_back(p010); logVertices.push_back(p110);
     logVertices.push_back(p011); logVertices.push_back(p110); logVertices.push_back(p111);
     for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,1.0f,0.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f));
     logUvs.push_back(glm::vec2(0.0f,0.0f)); logUvs.push_back(glm::vec2(1.0f,1.0f)); logUvs.push_back(glm::vec2(0.0f,1.0f));
 
-    // bottom (-Y)
+    // baza de jos a cubului
     logVertices.push_back(p000); logVertices.push_back(p001); logVertices.push_back(p101);
     logVertices.push_back(p000); logVertices.push_back(p101); logVertices.push_back(p100);
     for(int i=0;i<6;++i) logNormals.push_back(glm::vec3(0.0f,-1.0f,0.0f));
@@ -1015,19 +992,27 @@ void Initialize(void)
 
     nrVerticesLogs = logVertices.size();
     UploadMeshToGPU(VaoIdLogs, VboIdLogs, logVertices, logNormals, logUvs);
-    // use wood texture (fireplace top) as texture for logs
+    // pentru lemne folosesc textura de la blatul semineului, care e tot lemn
     TextureLogs = TextureFireplaceTop;
 
-    // define a few log instances (local coordinates relative to fireplace model)
+    // creez cateva instante pentru lemne
     logs.clear();
-    // place logs near the fire inset used for the flame animation
+    // pun lemnele in foc
     const float fireInset = 0.28f;
-    float zBase = fireplaceDepth - 0.32f; // slightly in front of inner back
-    float baseY = 0.03f; // lift so they sit on fireplace floor
-    logs.push_back({ glm::vec3(fireplaceWidth*0.5f - 0.12f, baseY + 0.04f, zBase), glm::vec3(0.60f, 0.08f, 0.12f), -0.25f });
-    logs.push_back({ glm::vec3(fireplaceWidth*0.5f + 0.08f, baseY + 0.02f, zBase + 0.02f), glm::vec3(0.50f, 0.07f, 0.10f), 0.15f });
-    logs.push_back({ glm::vec3(fireplaceWidth*0.5f - 0.05f, baseY + 0.10f, zBase - 0.05f), glm::vec3(0.40f, 0.06f, 0.10f), 0.60f });
-    logs.push_back({ glm::vec3(fireplaceWidth*0.5f + 0.20f, baseY + 0.05f, zBase - 0.02f), glm::vec3(0.45f, 0.07f, 0.11f), -0.40f });
+    float zBase = fireplaceDepth - 0.32f; // putin mai in fata
+    float baseY = 0.03f; // le ridic putin
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f - 0.12f, baseY + 0.04f, zBase), 
+                     glm::vec3(0.60f, 0.08f, 0.12f), 
+                     -0.25f }); // primul lemn
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f + 0.08f, baseY + 0.02f, zBase + 0.02f),
+                     glm::vec3(0.50f, 0.07f, 0.10f), 
+                     0.15f }); // al doilea lemn
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f - 0.05f, baseY + 0.10f, zBase - 0.05f), 
+                     glm::vec3(0.40f, 0.06f, 0.10f), 
+                     0.60f }); // al treilea lemn
+    logs.push_back({ glm::vec3(fireplaceWidth*0.5f + 0.20f, baseY + 0.05f, zBase - 0.02f), 
+                     glm::vec3(0.45f, 0.07f, 0.11f), 
+                     -0.40f }); // al patrulea lemn
 
     ProgramId = LoadShaders("10_01_Shader.vert", "10_01_Shader.frag");
     glUseProgram(ProgramId);
@@ -1042,27 +1027,13 @@ void Initialize(void)
     fireLightPosLocation = glGetUniformLocation(ProgramId, "fireLightPos");
     fireLightColorLocation = glGetUniformLocation(ProgramId, "fireLightColor");
     fireLightIntensityLocation = glGetUniformLocation(ProgramId, "fireLightIntensity");
-    // smoke fog uniforms
-    GLint smokeRegionMinLoc = glGetUniformLocation(ProgramId, "smokeRegionMin");
-    GLint smokeRegionMaxLoc = glGetUniformLocation(ProgramId, "smokeRegionMax");
-    GLint smokeRangeLoc = glGetUniformLocation(ProgramId, "smokeRange");
-    GLint smokeColorLoc = glGetUniformLocation(ProgramId, "smokeColor");
-    GLint smokeIntensityLoc = glGetUniformLocation(ProgramId, "smokeIntensity");
+    
+
     if (colorMulLocation >= 0) glUniform1f(colorMulLocation, 1.0f);
     if (alphaMulLocation >= 0) glUniform1f(alphaMulLocation, 1.0f);
     if (fireLightColorLocation >= 0) glUniform3f(fireLightColorLocation, 1.0f, 0.6f, 0.15f);
-    // smaller default intensity so the fire light is less overwhelming
     if (fireLightIntensityLocation >= 0) glUniform1f(fireLightIntensityLocation, 2.5f);
 
-    // compute smoke region in world space based on fireplace model
-    // account for model matrix used: final world = scale * (pos + localCoord)
-    glm::vec3 regionMin = (fireplacePosition + fireplaceOffset) * fireplaceScale;
-    glm::vec3 regionMax = regionMin + glm::vec3(fireplaceWidth * fireplaceScale, fireplaceHeight * fireplaceScale, fireplaceDepth * fireplaceScale);
-    if (smokeRegionMinLoc >= 0) glUniform3f(smokeRegionMinLoc, regionMin.x, regionMin.y, regionMin.z);
-    if (smokeRegionMaxLoc >= 0) glUniform3f(smokeRegionMaxLoc, regionMax.x, regionMax.y, regionMax.z);
-    if (smokeRangeLoc >= 0) glUniform1f(smokeRangeLoc, 0.8f * fireplaceHeight * fireplaceScale);
-    if (smokeColorLoc >= 0) glUniform3f(smokeColorLoc, 0.18f, 0.18f, 0.18f);
-    if (smokeIntensityLoc >= 0) glUniform1f(smokeIntensityLoc, 1.0f);
 
     glUniform1i(glGetUniformLocation(ProgramId, "myTexture"), 0);
 
@@ -1077,34 +1048,31 @@ void Initialize(void)
     solidColorLocation = glGetUniformLocation(ProgramId, "solidColor");
     if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 0);
 
-    // --- Initialize smoke particle system ---
+    // Shader separat pentru particule
     ParticleProgram = LoadShaders("particle.vert", "particle.frag");
-    if (ParticleProgram == 0) {
-        printf("Warning: particle shaders failed to load — using fallback drawing.\n");
-        smokeUseFallbackShader = true;
-    }
 
-    // create VAO/VBO for particles: layout = vec3 pos; float life; float size
+    // VAO si VBO pentru particule
     glGenVertexArrays(1, &VaoIdSmoke);
     glBindVertexArray(VaoIdSmoke);
     glGenBuffers(1, &VboIdSmoke);
     glBindBuffer(GL_ARRAY_BUFFER, VboIdSmoke);
-    // 5 floats per particle (vec3 + life + size)
+    // 5 float-uri fiecare particula (vec3 + life + size)
     glBufferData(GL_ARRAY_BUFFER, maxSmokeParticles * 5 * sizeof(float), NULL, GL_DYNAMIC_DRAW);
-    // position (location = 0)
+    // pozitia (location = 0)
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)0);
-    // life (location = 1)
+    // durata de viata (location = 1)
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)(3 * sizeof(float)));
-    // size (location = 2)
+    // dimensiunea (location = 2)
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 1, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (GLvoid*)(4 * sizeof(float)));
 
-    // initialize particle pool
+    // initializez particulele
     smokeParticles.resize(maxSmokeParticles);
-    for (int i = 0; i < maxSmokeParticles; ++i) {
-        smokeParticles[i].life = 0.0f; // dead
+    for (int i = 0; i < maxSmokeParticles; ++i) 
+    {
+        smokeParticles[i].life = 0.0f; // toate sunt moarte
         smokeParticles[i].pos = glm::vec3(0.0f);
         smokeParticles[i].vel = glm::vec3(0.0f);
         smokeParticles[i].size = 0.0f;
@@ -1318,28 +1286,15 @@ void RenderFunction(void)
         if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 0);
     }
 
-    // 4. DESENARE SEMINEU (Fireplace)
+    // Actualizarea mediului in functie de foc
     if (VaoIdFire != 0 && nrVerticesFire > 0) {
-        float t = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-        const float fireHeight = 0.45f;
-        for (size_t i = 0; i < fireVertices.size(); ++i) {
-            glm::vec3 base = fireBasePositions[i];
-            float y = base.y / fireHeight;
-            float factor = 1.0f - y;
-            if (base.y <= 0.01f) { fireVertices[i] = base; continue; }
-            float angle = atan2(base.z, base.x);
-            float radialLen = glm::length(glm::vec2(base.x, base.z));
-            glm::vec3 radial = (radialLen > 1e-5f) ? glm::normalize(glm::vec3(base.x, 0.0f, base.z)) : glm::vec3(0.0f);
-            float disp = 0.04f * factor * (0.5f + 0.5f * sin(t * 6.0f + angle * 4.0f - y * 5.0f));
-            float bob = 0.02f * factor * sin(t * 8.0f + y * 6.0f);
-            fireVertices[i] = base + radial * disp + glm::vec3(0.0f, bob, 0.0f);
-        }
         glBindBuffer(GL_ARRAY_BUFFER, VboIdFire);
         glBufferSubData(GL_ARRAY_BUFFER, 0, fireVertices.size() * sizeof(glm::vec3), &fireVertices[0]);
 
+        // mut si scalez focul
         glm::mat4 modelFire = glm::mat4(1.0f);
-        const float fireInset = 0.28f;
-        modelFire = glm::translate(modelFire, fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.0f, fireplaceDepth - fireInset) + fireOffset);
+        modelFire = glm::translate(modelFire, fireplacePosition + fireplaceOffset + 
+            glm::vec3(fireplaceWidth * 0.5f, 0.0f, fireplaceDepth - 0.28f) + fireOffset);
         modelFire = glm::scale(modelFire, glm::vec3(fireplaceScale));
         glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelFire[0][0]);
 
@@ -1347,12 +1302,12 @@ void RenderFunction(void)
         glBindTexture(GL_TEXTURE_2D, TextureTree);
         glBindVertexArray(VaoIdFire);
         if (fireLightPosLocation >= 0) {
-            glm::vec3 fireLightWorld = fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.18f, fireplaceDepth - fireInset) + fireOffset;
+            glm::vec3 fireLightWorld = fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.18f, fireplaceDepth - 0.28f) + fireOffset;
             glUniform3f(fireLightPosLocation, fireLightWorld.x, fireLightWorld.y, fireLightWorld.z);
         }
     }
 
-    // Fireplace casing (opaque)
+    // Desenez semineul
     if (VaoIdFireplace != 0 && nrVerticesFireplace > 0) {
         glm::mat4 modelFireplace = glm::mat4(1.0f);
         modelFireplace = glm::translate(modelFireplace, fireplacePosition + fireplaceOffset);
@@ -1368,7 +1323,7 @@ void RenderFunction(void)
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesFireplace);
     }
 
-    // Fireplace top (wood)
+    // Desenez blatul semineului
     if (VaoIdFireplaceTop != 0 && nrVerticesFireplaceTop > 0) {
         glm::mat4 modelTop = glm::mat4(1.0f);
         modelTop = glm::translate(modelTop, fireplacePosition + fireplaceOffset);
@@ -1381,7 +1336,7 @@ void RenderFunction(void)
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesFireplaceTop);
     }
 
-    // --- DESENARE LEMNE (logs) ---
+    // Desenez lemnele
     if (VaoIdLogs != 0 && nrVerticesLogs > 0 && !logs.empty()) {
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, TextureLogs);
@@ -1397,48 +1352,37 @@ void RenderFunction(void)
         }
     }
 
-    // Now draw the fire last so it's visible inside the fireplace.
+    // Desenez focul la final
     if (VaoIdFire != 0 && nrVerticesFire > 0) {
-        glm::mat4 modelFire = glm::mat4(1.0f);
-        const float fireInset = 0.28f;
-        modelFire = glm::translate(modelFire, fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.0f, fireplaceDepth - fireInset) + fireOffset);
+        glm::mat4 modelFire = glm::translate(glm::mat4(1.0f),
+            fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.0f, fireplaceDepth - 0.28f) + fireOffset);
         modelFire = glm::scale(modelFire, glm::vec3(fireplaceScale));
         glUniformMatrix4fv(myMatrixLocation, 1, GL_FALSE, &modelFire[0][0]);
 
-        // --- SCHIMBAREA CHEIE PENTRU CULOARE ---
-        // 1. Activam colorarea solida (fara texturi sau umbre complexe)
-        if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 1);
-        // 2. Setam culoarea PORTOCALIU (R=1.0, G=0.5, B=0.0)
-        if (solidColorLocation >= 0) glUniform3f(solidColorLocation, 1.0f, 0.5f, 0.0f);
+        if (useSolidColorLocation >= 0 && solidColorLocation >= 0) {
+            glUniform1i(useSolidColorLocation, 1);
+            glUniform3f(solidColorLocation, 1.0f, 0.5f, 0.0f);
+        }
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, WhiteTexture); // Folosim textura alba
-        glBindVertexArray(VaoIdFire);
-
-        // Calculam palpairea (flicker)
         float ft = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
-        float flicker = 0.90f + 0.18f * sin(ft * 2.2f) + 0.08f * sin(ft * 0.9f + 1.3f);
-        if (flicker < 0.6f) flicker = 0.6f; if (flicker > 1.4f) flicker = 1.4f;
-
+        float flicker = glm::clamp(0.90f + 0.18f * sin(ft * 2.2f) + 0.08f * sin(ft * 0.9f + 1.3f), 0.6f, 1.4f);
         if (fireLightIntensityLocation >= 0) glUniform1f(fireLightIntensityLocation, fireBaseIntensity * flicker);
 
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LEQUAL);
+        glBindVertexArray(VaoIdFire);
+        glBindTexture(GL_TEXTURE_2D, WhiteTexture);
         glEnable(GL_BLEND);
-        // Folosim GL_ONE pentru efect "glow" (aditiv)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+        glDepthFunc(GL_LEQUAL);
         glDepthMask(GL_FALSE);
 
         glDrawArrays(GL_TRIANGLES, 0, (GLsizei)nrVerticesFire);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
-
-        // --- IMPORTANT: Dezactivam colorarea solida dupa ce terminam ---
         if (useSolidColorLocation >= 0) glUniform1i(useSolidColorLocation, 0);
     }
 
-    // --- SMOKE ---
+    // Fumul
     {
         float curTime = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
         float dt = curTime - lastFrameTime;
@@ -1446,25 +1390,31 @@ void RenderFunction(void)
         if (dt > 0.1f) dt = 0.1f;
         lastFrameTime = curTime;
 
-        // random generator
+        // engine pentru generarea random a particulelor
         static std::default_random_engine rng(123456);
+        static std::uniform_real_distribution<float> dOffset(-0.03f, 0.03f);
+        static std::uniform_real_distribution<float> dVelY(0.6f, 1.3f);
+        static std::uniform_real_distribution<float> dSize(3.0f, 6.0f);
+        static int nextSmokeIndex = 0; // suprascriu cea mai veche particula
 
+        // calculez centrul fumului
         const float fireInset = 0.28f;
-        glm::vec3 emitCenter = fireplacePosition + fireplaceOffset + glm::vec3(fireplaceWidth * 0.5f, 0.18f, fireplaceDepth - fireInset) + fireOffset;
+        glm::vec3 emitCenter = fireplacePosition + fireplaceOffset + 
+                glm::vec3(fireplaceWidth * 0.5f, 0.18f, fireplaceDepth - fireInset) + 
+                fireOffset;
 
+        // folosesc generarile random pentru particule
         int toSpawn = int(smokeSpawnRate * dt + 0.5f);
         for (int s = 0; s < toSpawn; ++s) {
-            for (int i = 0; i < maxSmokeParticles; ++i) {
-                if (smokeParticles[i].life <= 0.0f) {
-                    smokeParticles[i].pos = emitCenter + glm::vec3(rndf(rng, -0.03f, 0.03f), 0.0f, rndf(rng, -0.03f, 0.03f));
-                    smokeParticles[i].vel = glm::vec3(rndf(rng, -0.03f, 0.03f) * 0.7f, rndf(rng, 0.6f, 1.3f), rndf(rng, -0.03f, 0.03f) * 0.7f);
-                    smokeParticles[i].life = 1.0f;
-                    smokeParticles[i].size = rndf(rng, 3.0f, 6.0f);
-                    break;
-                }
-            }
+            SmokeParticle &p = smokeParticles[nextSmokeIndex];
+            p.pos = emitCenter + glm::vec3(dOffset(rng), 0.0f, dOffset(rng));
+            p.vel = glm::vec3(dOffset(rng) * 0.7f, dVelY(rng), dOffset(rng) * 0.7f);
+            p.life = 1.0f;
+            p.size = dSize(rng);
+            nextSmokeIndex = (nextSmokeIndex + 1) % maxSmokeParticles;
         }
 
+        // umplu bufferul
         float maxSmokeY = fireplacePosition.y + fireplaceHeight * fireplaceScale * smokeCeilingFactor;
         std::vector<float> buf;
         buf.resize(maxSmokeParticles * 5);
@@ -1472,9 +1422,10 @@ void RenderFunction(void)
             SmokeParticle& p = smokeParticles[i];
             if (p.life > 0.0f) {
                 p.pos += p.vel * dt;
-                p.vel.y += 1.2f * dt;
+                p.vel.y += 1.2f * dt; // deplasare pe verticala
                 p.vel *= 0.99f;
-                p.life -= dt * 0.12f;
+                p.life -= dt * 0.12f; // pierdere din viata
+                // opresc particulele la limita maxima superioara
                 if (p.pos.y >= maxSmokeY) { p.pos.y = maxSmokeY; p.vel = glm::vec3(0.0f); }
                 if (p.life < 0.0f) p.life = 0.0f;
             }
@@ -1489,30 +1440,19 @@ void RenderFunction(void)
         glBindBuffer(GL_ARRAY_BUFFER, VboIdSmoke);
         glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buf.size() * sizeof(float)), buf.data());
 
-        if (!smokeUseFallbackShader) {
-            glUseProgram(ParticleProgram);
-            GLint locView = glGetUniformLocation(ParticleProgram, "view");
-            GLint locProj = glGetUniformLocation(ParticleProgram, "projection");
-            if (locView >= 0) glUniformMatrix4fv(locView, 1, GL_FALSE, &view[0][0]);
-            if (locProj >= 0) glUniformMatrix4fv(locProj, 1, GL_FALSE, &projection[0][0]);
-            glEnable(GL_PROGRAM_POINT_SIZE);
-        }
-        else {
-            glUseProgram(ProgramId);
-            glDisable(GL_PROGRAM_POINT_SIZE);
-            glPointSize(4.0f);
-        }
+        glUseProgram(ParticleProgram);
+        GLint locView = glGetUniformLocation(ParticleProgram, "view");
+        GLint locProj = glGetUniformLocation(ParticleProgram, "projection");
+        if (locView >= 0) glUniformMatrix4fv(locView, 1, GL_FALSE, &view[0][0]);
+        if (locProj >= 0) glUniformMatrix4fv(locProj, 1, GL_FALSE, &projection[0][0]);
+        glEnable(GL_PROGRAM_POINT_SIZE);
 
         glBindVertexArray(VaoIdSmoke);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        GLboolean wasDepth = glIsEnabled(GL_DEPTH_TEST);
-        if (!wasDepth) glEnable(GL_DEPTH_TEST);
         glDepthMask(GL_FALSE);
         glDrawArrays(GL_POINTS, 0, (GLsizei)maxSmokeParticles);
         glDepthMask(GL_TRUE);
-        if (!wasDepth) glDisable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
         glUseProgram(ProgramId);
     }

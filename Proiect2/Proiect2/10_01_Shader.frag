@@ -91,16 +91,9 @@ void main(void)
     result += fireL * fireDot * 1.5; // * 1.5 pentru stralucire
     result += fireL * 0.5;           // Glow ambiental mai puternic in jurul focului
 
-    // --- 5. FOG ---
+    // --- 5. No smoke in main shader (smoke rendered by particle system)
     float finalAlpha = 1.0;
-    float fogFactor = 0.0;
-    if (FragPos.x >= smokeRegionMin.x && FragPos.x <= smokeRegionMax.x && FragPos.z >= smokeRegionMin.z && FragPos.z <= smokeRegionMax.z) {
-        float dy = smokeRegionMax.y - FragPos.y;
-        fogFactor = clamp(dy / smokeRange, 0.0, 1.0);
-        float bottomFade = clamp((FragPos.y - smokeRegionMin.y) / (smokeRange * 0.2), 0.0, 1.0);
-        fogFactor *= bottomFade;
-    }
-    vec3 finalCol = mix(result * globalColorMul, smokeColor, fogFactor * smokeIntensity);
-    
+    vec3 finalCol = result * globalColorMul;
+
     out_Color = vec4(finalCol, clamp(finalAlpha * globalAlphaMul, 0.0, 1.0));
 }
