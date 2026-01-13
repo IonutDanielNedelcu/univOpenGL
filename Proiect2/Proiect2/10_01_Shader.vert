@@ -3,7 +3,7 @@
 // Atribute de intrare
 layout(location=0) in vec3 in_Position;
 layout(location=1) in vec3 in_Normal;
-layout(location=2) in vec2 in_TexCoord; // Aici intra coordonatele UV din OBJ
+layout(location=2) in vec2 in_TexCoord;
 
 // Variabile de iesire catre Fragment Shader
 out vec3 FragPos;
@@ -12,10 +12,11 @@ out vec3 inViewPos;
 out vec4 ex_Color;
 out vec2 tex_Coord; // Aici le trimitem mai departe
 
+// Variabile uniforme
 uniform mat4 myMatrix;
 uniform mat4 view;
 uniform mat4 projection;
-uniform vec3 viewPos; // Pozitia camerei (pt specular)
+uniform vec3 viewPos;
 
 void main(void)
 {
@@ -23,11 +24,7 @@ void main(void)
     
     FragPos = mat3(myMatrix) * in_Position;
     Normal = mat3(myMatrix) * in_Normal;
-    
-    inViewPos = viewPos;
-    ex_Color = vec4(1.0, 1.0, 1.0, 1.0); // Culoare default alba
 
     // Transmiterea coordonatelor de texturare
-    // Uneori texturile sunt rasturnate, deci folosim 1.0 - y daca e cazul
     tex_Coord = vec2(in_TexCoord.x, 1.0 - in_TexCoord.y); 
 }
